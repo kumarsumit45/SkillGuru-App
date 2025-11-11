@@ -131,8 +131,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 12,
     justifyContent: 'center',
+    alignItems:"center",
     minWidth: 60,
   },
   countryCodeText: {
@@ -147,8 +147,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 14,
+    fontSize: 15,
     color: '#2C3E50',
+    fontWeight:"500",
   },
   sendOtpButton: {
     backgroundColor: '#3D4A7D',

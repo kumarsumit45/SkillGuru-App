@@ -15,10 +15,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import COLORS from "../../constants/colors";
+import CountryPicker from "react-native-country-picker-modal";
 
 const AuthScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [countryCode, setCountryCode] = useState("+91");
+  const [countryCode, setCountryCode] = useState("IN");
+  const [callingCode, setCallingCode] = useState("+91");
+  const [visible, setVisible] = useState(false);
 
   const router = useRouter();
 
@@ -83,18 +86,33 @@ const AuthScreen = () => {
             <Text style={styles.otpTitle}>Sign up with WhatsApp OTP</Text>
 
             <View style={styles.phoneInputContainer}>
-              <TextInput 
+
+              {/* Country picker */}
+              <TouchableOpacity
                 style={styles.countryCodeButton}
-                placeholder="Country Code"
-                placeholderTextColor="#999"
-                keyboardType="phone-pad"
-                value={countryCode}
-                onChangeText={setCountryCode}
-              />
+                onPress={() => setVisible(true)}
+                activeOpacity={0.7}
+              >
+                <CountryPicker
+                  countryCode={countryCode}
+                  withFilter
+                  withFlag
+                  withCallingCode
+                  withCallingCodeButton
+                  onSelect={(country) => {
+                    setCountryCode(country.cca2);
+                    setCallingCode(`+${country.callingCode[0]}`);
+                  }}
+                  visible={visible}
+                  onClose={() => setVisible(false)}
+                />
+              </TouchableOpacity> 
+
+              {/* Mobile number input */}
               <TextInput
                 style={styles.phoneInput}
                 placeholder="Phone number"
-                placeholderTextColor="#999"
+                placeholderTextColor="#c9c5c5ff"
                 keyboardType="phone-pad"
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
