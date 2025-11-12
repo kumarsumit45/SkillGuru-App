@@ -54,7 +54,11 @@ const AuthScreen = () => {
           </Text>
 
           {/* Google Login Button */}
-          <TouchableOpacity activeOpacity={0.7} style={styles.googleButton}>
+          <TouchableOpacity 
+             activeOpacity={0.7} 
+             style={styles.googleButton}
+             onPress={()=>router.push("addMobileNumber")}
+          >
             <Image source={require("../../assets/images/googleIcon.png")} style={styles.googleIcon} contentFit="cover"/>
             <Text style={styles.googleButtonText}>Continue with Google</Text>
           </TouchableOpacity>
