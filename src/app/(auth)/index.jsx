@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -6,6 +6,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 
 import styles from "../../assets/styles/authScreen.styles";
@@ -16,14 +18,100 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import COLORS from "../../constants/colors";
 import CountryPicker from "react-native-country-picker-modal";
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const AuthScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [countryCode, setCountryCode] = useState("IN");
   const [callingCode, setCallingCode] = useState("+91");
   const [visible, setVisible] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const router = useRouter();
+
+  // Configure Google OAuth
+  
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com",  // need replacement here
+  });
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      const { id_token } = response.params;
+      handleGoogleSignIn(id_token);
+    }
+  }, [response]);
+
+  const handleGoogleSignIn = async (idToken) => {
+    try {
+      setGoogleLoading(true);
+
+      const response = await fetch("https://api.theskillguru.org/auth/google", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ idToken }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Backend Error:", data.error);
+        throw new Error(data.error || "Unknown error from backend");
+      }
+
+      // Storing authentication data
+      await AsyncStorage.setItem("uid", data.uid);
+      try {
+        await AsyncStorage.setItem("authToken", data.token || "");
+      } catch (_) {}
+
+      // Navigate based on response
+      if (data.message === "User created successfully") {
+        // New user - redirect to mobile number screen
+        router.push("addMobileNumber");
+      } else {
+        // Existing user - redirect to home
+        router.push("/"); //will Adjust home route afterwards
+      }
+    } catch (error) {
+      console.error("Error during Google sign-in:", error.message);
+      Alert.alert("Error", "Google Sign-In failed. Please try again.");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handelGooglepress = async () => {
+    try {
+      // Check if Client ID is configured
+      if (!request || request.clientId?.includes("YOUR_GOOGLE")) {
+        Alert.alert(
+          "Configuration Required",
+          "Please add your Google Web Client ID in the code. Check the comments in src/app/(auth)/index.jsx line 40."
+        );
+        return;
+      }
+
+      setGoogleLoading(true);
+      const result = await promptAsync();
+
+      // If user cancelled, reset loading state
+      if (result?.type === "cancel" || result?.type === "dismiss") {
+        setGoogleLoading(false);
+      }
+    } catch (error) {
+      console.error("Google login error:", error);
+      Alert.alert("Error", `Failed to initiate Google login: ${error.message}`);
+    } finally{
+      setGoogleLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -54,13 +142,20 @@ const AuthScreen = () => {
           </Text>
 
           {/* Google Login Button */}
-          <TouchableOpacity 
-             activeOpacity={0.7} 
-             style={styles.googleButton}
-             onPress={()=>router.push("addMobileNumber")}
+          <TouchableOpacity
+             activeOpacity={0.7}
+             style={[styles.googleButton, googleLoading && { opacity: 0.6 }]}
+             onPress={handelGooglepress}
+             disabled={googleLoading}
           >
-            <Image source={require("../../assets/images/googleIcon.png")} style={styles.googleIcon} contentFit="cover"/>
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
+            {googleLoading ? (
+              <ActivityIndicator color={COLORS.primary || "#000"} size="small" />
+            ) : (
+              <Image source={require("../../assets/images/googleIcon.png")} style={styles.googleIcon} contentFit="cover"/>
+            )}
+            <Text style={styles.googleButtonText}>
+              {googleLoading ? "Connecting..." : "Continue with Google"}
+            </Text>
           </TouchableOpacity>
 
           <Text style={styles.fastLoginText}>
