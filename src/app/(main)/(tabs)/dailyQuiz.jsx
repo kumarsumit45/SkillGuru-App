@@ -1,12 +1,12 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 
-const DailyQuizScreen = () => {
+const dailyQuiz = () => {
   return (
-    <View style={{flex:1,alignItems:"center",justifyContent:"center"}}>
-      <Text>DailyQuizScreen</Text>
+    <View>
+      <Text>dailyQuiz</Text>
     </View>
   )
 }
 
-export default DailyQuizScreen
+export default dailyQuiz

@@ -4,7 +4,7 @@ import { Tabs } from 'expo-router'
 
 const Tablayout = () => {
   return (
-    <Tabs>
+    <Tabs screenOptions={{headerShown:false}}>
         <Tabs.Screen name='index' />
         <Tabs.Screen name='dailyQuiz' />
         <Tabs.Screen name='myHistroy' />
