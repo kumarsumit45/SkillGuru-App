@@ -163,6 +163,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFF',
   },
+  verifyInput:{
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    color: '#2C3E50',
+    fontWeight:"500",
+    minWidth:150,
+    maxHeight:50
+  },
+  editText:{
+    fontSize:16,
+    color:"#fff",
+    fontWeight:"400",
+    textDecorationLine:"underline",
+    textDecorationStyle:"solid"
+  },
   guestContainer:{
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     paddingVertical:12,

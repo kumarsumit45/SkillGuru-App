@@ -27,6 +27,7 @@ WebBrowser.maybeCompleteAuthSession();
 const AuthScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [countryCode, setCountryCode] = useState("IN");
+  const [otp,setOtp] = useState("");
   const [callingCode, setCallingCode] = useState("+91");
   const [visible, setVisible] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -222,6 +223,26 @@ const AuthScreen = () => {
             <TouchableOpacity activeOpacity={0.7} style={styles.sendOtpButton}>
               <Text style={styles.sendOtpButtonText}>Send OTP</Text>
             </TouchableOpacity>
+
+          
+
+            <View style={{flexDirection:"row",gap:10}} >
+              <TextInput
+                style={styles.verifyInput}
+                placeholder="Phone number"
+                placeholderTextColor="#c9c5c5ff"
+                keyboardType="phone-pad"
+                value={otp}
+                onChangeText={setOtp}
+              />
+              <TouchableOpacity activeOpacity={0.6} style={styles.sendOtpButton}>
+                <Text style={styles.sendOtpButtonText}>Verify OTP</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity>
+              <Text style={styles.editText}>Edit phone</Text>
+            </TouchableOpacity>
+
           </View>
 
           {/* Or Divider */}
