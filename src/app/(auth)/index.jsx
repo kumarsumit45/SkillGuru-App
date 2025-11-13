@@ -31,6 +31,7 @@ const AuthScreen = () => {
   const [callingCode, setCallingCode] = useState("+91");
   const [visible, setVisible] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
 
   const router = useRouter();
 
@@ -185,63 +186,71 @@ const AuthScreen = () => {
 
             <Text style={styles.otpTitle}>Sign up with WhatsApp OTP</Text>
 
-            <View style={styles.phoneInputContainer}>
+            {!otpSent ? (
+              <>
+                <View style={styles.phoneInputContainer}>
 
-              {/* Country picker */}
-              <TouchableOpacity
-                style={styles.countryCodeButton}
-                onPress={() => setVisible(true)}
-                activeOpacity={0.7}
-              >
-                <CountryPicker
-                  countryCode={countryCode}
-                  withFilter
-                  withFlag
-                  withCallingCode
-                  withCallingCodeButton
-                  onSelect={(country) => {
-                    setCountryCode(country.cca2);
-                    setCallingCode(`+${country.callingCode[0]}`);
-                  }}
-                  visible={visible}
-                  onClose={() => setVisible(false)}
-                />
-              </TouchableOpacity> 
+                  {/* Country picker */}
+                  <TouchableOpacity
+                    style={styles.countryCodeButton}
+                    onPress={() => setVisible(true)}
+                    activeOpacity={0.7}
+                  >
+                    <CountryPicker
+                      countryCode={countryCode}
+                      withFilter
+                      withFlag
+                      withCallingCode
+                      withCallingCodeButton
+                      onSelect={(country) => {
+                        setCountryCode(country.cca2);
+                        setCallingCode(`+${country.callingCode[0]}`);
+                      }}
+                      visible={visible}
+                      onClose={() => setVisible(false)}
+                    />
+                  </TouchableOpacity>
 
-              {/* Mobile number input */}
-              <TextInput
-                style={styles.phoneInput}
-                placeholder="Phone number"
-                placeholderTextColor="#c9c5c5ff"
-                keyboardType="phone-pad"
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-              />
-            </View>
+                  {/* Mobile number input */}
+                  <TextInput
+                    style={styles.phoneInput}
+                    placeholder="Phone number"
+                    placeholderTextColor="#c9c5c5ff"
+                    keyboardType="phone-pad"
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                  />
+                </View>
 
-            {/* Send OTP Button */}
-            <TouchableOpacity activeOpacity={0.7} style={styles.sendOtpButton}>
-              <Text style={styles.sendOtpButtonText}>Send OTP</Text>
-            </TouchableOpacity>
-
-          
-
-            <View style={{flexDirection:"row",gap:10}} >
-              <TextInput
-                style={styles.verifyInput}
-                placeholder="Phone number"
-                placeholderTextColor="#c9c5c5ff"
-                keyboardType="phone-pad"
-                value={otp}
-                onChangeText={setOtp}
-              />
-              <TouchableOpacity activeOpacity={0.6} style={styles.sendOtpButton}>
-                <Text style={styles.sendOtpButtonText}>Verify OTP</Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity>
-              <Text style={styles.editText}>Edit phone</Text>
-            </TouchableOpacity>
+                {/* Send OTP Button */}
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={styles.sendOtpButton}
+                  onPress={() => setOtpSent(true)}
+                >
+                  <Text style={styles.sendOtpButtonText}>Send OTP</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <View style={styles.verifyOtpConatiner} >
+                  <TextInput
+                    style={styles.verifyInput}
+                    placeholder="Enter OTP"
+                    placeholderTextColor="#c9c5c5ff"
+                    keyboardType="phone-pad"
+                    value={otp}
+                    onChangeText={setOtp}
+                  />
+                  <TouchableOpacity activeOpacity={0.6} style={styles.sendOtpButton}>
+                    <Text style={styles.sendOtpButtonText}>Verify OTP</Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={() => setOtpSent(false)}>
+                  <Text style={styles.editText}>Edit phone</Text>
+                </TouchableOpacity>
+              </>
+            )}
 
           </View>
 

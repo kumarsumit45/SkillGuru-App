@@ -163,6 +163,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFF',
   },
+  verifyOtpConatiner:{
+    flexDirection:"row",
+    gap:10
+  },
   verifyInput:{
     backgroundColor: '#FFF',
     borderRadius: 12,
