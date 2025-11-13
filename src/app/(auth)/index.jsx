@@ -219,6 +219,8 @@ const AuthScreen = () => {
 
   // WhatsApp OTP: Verify OTP
   const verifyWaOtp = async () => {
+    console.log("verify otp section");
+    
     try {
       const cleanPhone = (phoneNumber || "").replace(/\D/g, "");
       const cleanOtp = (otp || "").replace(/\D/g, "");
@@ -264,9 +266,16 @@ const AuthScreen = () => {
 
       // New user -> status 201, go to fill-name. Existing -> go back/home.
       if (resp.status === 201) {
-        setTimeout(() => router.push("/(main)"), 0);
+        console.log("otp verified")
+        console.log("verification sucess and rendering to home page.");
+        
+        setTimeout(() => router.push("/(main)/(tabs)"), 0);
+
       } else {
-        setTimeout(() => router.push("/"), 0);
+        console.log("verification failed");
+        console.log("verification failed but still taking you to homepage");
+        setTimeout(() => router.push("/(main)/(tabs)"), 0);
+        // setTimeout(() => router.push("/"), 0);
       }
     } catch (e) {
       console.error("verifyWaOtp error", e);
