@@ -1,6 +1,6 @@
 const COLORS = {
     button:"",
-    background:"#eaf6ff",
+    background: "#d0e7f7" ,//"#eaf6ff",
     textprimary:"#2C3E50",
     placeholdertext:"#999",
     gradient1:"#A29BFE",
