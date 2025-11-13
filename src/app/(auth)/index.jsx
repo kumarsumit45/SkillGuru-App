@@ -40,6 +40,8 @@ const AuthScreen = () => {
   const [waVerifying, setWaVerifying] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [referralId, setReferralId] = useState("");
+  const [selectedRoles, setSelectedRoles] = useState([]);
 
   const router = useRouter();
   const { setUid } = useAuthStore();
@@ -124,25 +126,66 @@ const AuthScreen = () => {
     }
   };
 
-  // Helper function to store referral (placeholder)
+  // Store Referral
   const handleStoreReferral = async () => {
+    const uid = await AsyncStorage.getItem("uid");
+    if (!uid || !referralId) return;
+    console.log(uid, referralId);
     try {
-      // TODO: Implement referral storage logic
-      // This could involve storing referral codes from deep links or query params
+      const response = await fetch(`${config.backendUrl}/referral/referral`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ uid, referralId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update referrals");
+      }
+
+      const result = await response.json();
+      setMessage(result.message);
+      setError("");
+    } catch (err) {
+      console.error("Error:", err);
+      setError(err.message);
+      setMessage("");
+    }
+  };
+
+  // Save Roles to Database
+  const saveRolesToDatabase = async () => {
+    try {
+      const uid = await AsyncStorage.getItem("uid");
+      if (!uid) return;
+
+      const response = await fetch(`${config.backendUrl}/save-roles/save-roles`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          uid,
+          selectedRoles,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        console.log("response.message", data.message);
+      } else {
+        console.error("Error saving roles:", data);
+      }
     } catch (error) {
-      console.error("Error storing referral:", error);
+      console.error("Error:", error);
     }
   };
 
   // WhatsApp OTP: Send OTP
   const sendWaOtp = async () => {
     try {
-      // const cleanCountry = (callingCode || "").replace(/\D/g, "");
       const cleanPhone = (phoneNumber || "").replace(/\D/g, "");
-      // if (!cleanCountry || cleanCountry.length < 1 || cleanCountry.length > 4) {
-      //   Alert.alert("Error", "Enter a valid country code");
-      //   return;
-      // }
       if (!cleanPhone || cleanPhone.length < 7 || cleanPhone.length > 15) {
         Alert.alert("Error", "Enter a valid phone number");
         return;
@@ -177,7 +220,6 @@ const AuthScreen = () => {
   // WhatsApp OTP: Verify OTP
   const verifyWaOtp = async () => {
     try {
-      const cleanCountry = (callingCode || "").replace(/\D/g, "");
       const cleanPhone = (phoneNumber || "").replace(/\D/g, "");
       const cleanOtp = (otp || "").replace(/\D/g, "");
       if (!cleanOtp || cleanOtp.length < 4) {
@@ -192,7 +234,7 @@ const AuthScreen = () => {
         body: JSON.stringify({
           phone: cleanPhone,
           otp: cleanOtp,
-          countryCode: cleanCountry,
+          countryCode: callingCode,
         }),
       });
       const data = await resp.json().catch(async () => ({
