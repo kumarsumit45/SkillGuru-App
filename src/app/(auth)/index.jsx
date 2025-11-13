@@ -21,6 +21,10 @@ import CountryPicker from "react-native-country-picker-modal";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { signInWithCustomToken } from "firebase/auth";
+import { auth } from "../../config/firebase";
+import config from "../../config";
+import useAuthStore from "../../store/authStore";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -32,8 +36,13 @@ const AuthScreen = () => {
   const [visible, setVisible] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [waSending, setWaSending] = useState(false);
+  const [waVerifying, setWaVerifying] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   const router = useRouter();
+  const { setUid } = useAuthStore();
 
   // Configure Google OAuth
   
@@ -112,6 +121,117 @@ const AuthScreen = () => {
       Alert.alert("Error", `Failed to initiate Google login: ${error.message}`);
     } finally{
       setGoogleLoading(false);
+    }
+  };
+
+  // Helper function to store referral (placeholder)
+  const handleStoreReferral = async () => {
+    try {
+      // TODO: Implement referral storage logic
+      // This could involve storing referral codes from deep links or query params
+    } catch (error) {
+      console.error("Error storing referral:", error);
+    }
+  };
+
+  // WhatsApp OTP: Send OTP
+  const sendWaOtp = async () => {
+    try {
+      // const cleanCountry = (callingCode || "").replace(/\D/g, "");
+      const cleanPhone = (phoneNumber || "").replace(/\D/g, "");
+      // if (!cleanCountry || cleanCountry.length < 1 || cleanCountry.length > 4) {
+      //   Alert.alert("Error", "Enter a valid country code");
+      //   return;
+      // }
+      if (!cleanPhone || cleanPhone.length < 7 || cleanPhone.length > 15) {
+        Alert.alert("Error", "Enter a valid phone number");
+        return;
+      }
+      setWaSending(true);
+      setError("");
+      setMessage("");
+      const resp = await fetch(`${config.backendUrl}/auth/whatsapp/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: cleanPhone,
+          countryCode: callingCode,
+        }),
+      });
+      if (!resp.ok) {
+        const errText = await resp.text();
+        throw new Error(errText || "Failed to send OTP");
+      }
+      const data = await resp.json().catch(() => ({}));
+      setMessage(data.message || "OTP sent. Please check WhatsApp.");
+      setOtpSent(true);
+    } catch (e) {
+      console.error("sendWaOtp error", e);
+      setError(e.message || "Failed to send OTP");
+      Alert.alert("Error", e.message || "Failed to send OTP");
+    } finally {
+      setWaSending(false);
+    }
+  };
+
+  // WhatsApp OTP: Verify OTP
+  const verifyWaOtp = async () => {
+    try {
+      const cleanCountry = (callingCode || "").replace(/\D/g, "");
+      const cleanPhone = (phoneNumber || "").replace(/\D/g, "");
+      const cleanOtp = (otp || "").replace(/\D/g, "");
+      if (!cleanOtp || cleanOtp.length < 4) {
+        Alert.alert("Error", "Enter the OTP sent to your WhatsApp");
+        return;
+      }
+      setWaVerifying(true);
+      setError("");
+      const resp = await fetch(`${config.backendUrl}/auth/whatsapp/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: cleanPhone,
+          otp: cleanOtp,
+          countryCode: cleanCountry,
+        }),
+      });
+      const data = await resp.json().catch(async () => ({
+        message: await resp.text(),
+      }));
+      if (!resp.ok) {
+        throw new Error(data?.error || data?.message || "OTP verification failed");
+      }
+
+      if (!data?.token || !data?.uid) {
+        throw new Error("Invalid response from server");
+      }
+
+      // Sign in to Firebase using the custom token
+      await signInWithCustomToken(auth, data.token);
+
+      await AsyncStorage.setItem("uid", data.uid);
+      try {
+        await AsyncStorage.setItem("authToken", data.token || "");
+      } catch (_) {}
+
+      try {
+        await handleStoreReferral();
+      } catch (_) {}
+
+      setUid(data.uid);
+
+      // New user -> status 201, go to fill-name. Existing -> go back/home.
+      if (resp.status === 201) {
+        setTimeout(() => router.push("/(main)"), 0);
+      } else {
+        setTimeout(() => router.push("/"), 0);
+      }
+    } catch (e) {
+      console.error("verifyWaOtp error", e);
+      setError(e.message || "OTP verification failed");
+      Alert.alert("Error", e.message || "OTP verification failed");
+    } finally {
+      setWaVerifying(false);
     }
   };
 
@@ -225,10 +345,15 @@ const AuthScreen = () => {
                 {/* Send OTP Button */}
                 <TouchableOpacity
                   activeOpacity={0.7}
-                  style={styles.sendOtpButton}
-                  onPress={() => setOtpSent(true)}
+                  style={[styles.sendOtpButton, waSending && { opacity: 0.6 }]}
+                  onPress={sendWaOtp}
+                  disabled={waSending}
                 >
-                  <Text style={styles.sendOtpButtonText}>Send OTP</Text>
+                  {waSending ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.sendOtpButtonText}>Send OTP</Text>
+                  )}
                 </TouchableOpacity>
               </>
             ) : (
@@ -242,11 +367,25 @@ const AuthScreen = () => {
                     value={otp}
                     onChangeText={setOtp}
                   />
-                  <TouchableOpacity activeOpacity={0.6} style={styles.sendOtpButton}>
-                    <Text style={styles.sendOtpButtonText}>Verify OTP</Text>
+                  <TouchableOpacity
+                    activeOpacity={0.6}
+                    style={[styles.sendOtpButton, waVerifying && { opacity: 0.6 }]}
+                    onPress={verifyWaOtp}
+                    disabled={waVerifying}
+                  >
+                    {waVerifying ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.sendOtpButtonText}>Verify OTP</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={() => setOtpSent(false)}>
+                <TouchableOpacity onPress={() => {
+                  setOtpSent(false);
+                  setOtp("");
+                  setError("");
+                  setMessage("");
+                }}>
                   <Text style={styles.editText}>Edit phone</Text>
                 </TouchableOpacity>
               </>
