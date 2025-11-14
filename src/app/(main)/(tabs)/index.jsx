@@ -1,21 +1,3 @@
-// import { View, Text } from 'react-native'
-// import React from 'react'
-// import { SafeAreaFrameContext, SafeAreaView } from 'react-native-safe-area-context'
-// import Header from '../../../components/header'
-
-// const HomeScreen = () => {
-//   return (
-//     <SafeAreaView style={{flex:1,}}>
-//       <Header bgr='skyblue'/>
-//     <View >
-//       <Text>HomeScreen</Text>
-//     </View>
-//     </SafeAreaView>
-//   )
-// }
-
-// export default HomeScreen
-
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -65,6 +47,15 @@ const CreateQuizScreen = () => {
       <Header bgr='skyblue' />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} bounces={false}>
         {/* Language Section */}
+        <View style={{backgroundColor:"#fff",        //"#d8e0dede",
+                      borderWidth:0,
+                      marginHorizontal:-5,
+                      paddingHorizontal:18,
+                      paddingVertical:18,
+                      marginTop:-10,
+                      marginBottom:25,
+                      borderRadius:20
+                      }}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🌐 Language</Text>
           <View style={styles.languageContainer}>
@@ -121,7 +112,6 @@ const CreateQuizScreen = () => {
                 style={styles.clearButton}
                 onPress={() => setQuizTopic('')}
               >
-                {/* <Text style={styles.clearIcon}>x</Text> */}
                 <Ionicons name="close-circle-outline" size={20} color={"grey"} />
               </TouchableOpacity>
             )}
@@ -231,6 +221,7 @@ const CreateQuizScreen = () => {
         </TouchableOpacity>
 
         <View style={{ height: 20 }} />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

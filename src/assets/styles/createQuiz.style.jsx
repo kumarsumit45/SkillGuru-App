@@ -4,7 +4,7 @@ import COLORS from "../../constants/colors";
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F7",  //COLORS.background,          //'
+    backgroundColor:   COLORS.background, //"#F5F5F7",
   },
   scrollView: {
     paddingHorizontal: 20,
@@ -28,13 +28,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 1.5,
+    borderColor: "#ddd"  ,           //'#E5E7EB',
     alignItems: 'center',
   },
   languageButtonActive: {
     backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5',
+    borderColor: '#4face6ff',
   },
   languageButtonText: {
     fontSize: 14,
@@ -49,8 +49,8 @@ const styles = StyleSheet.create({
   },
   topicInput: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 1.3,
+    borderColor: "#ddd",               //'#E5E7EB',
     borderRadius: 8,
     padding: 12,
     paddingRight: 40,
@@ -73,15 +73,15 @@ const styles = StyleSheet.create({
     marginTop: 12,
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 1.3,
+    borderColor: "#ddd",              //'#E5E7EB',
     overflow: 'hidden',
   },
   suggestionItem: {
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: "#ddd",                 //'#F3F4F6',
   },
   suggestionText: {
     fontSize: 13,
@@ -91,8 +91,8 @@ const styles = StyleSheet.create({
   fileButton: {
     flexDirection:"row",
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 1.3,
+    borderColor:  "#ddd",                           //'#E5E7EB',
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -119,8 +119,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 1.3,
+    borderColor: "#ddd",      //'#E5E7EB',
     backgroundColor: '#FFFFFF',
   },
   optionButtonActive: {
@@ -146,8 +146,8 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 1.3,
+    borderColor:"#ddd",  //'#E5E7EB',
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 12,
