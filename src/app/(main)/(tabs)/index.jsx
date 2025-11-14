@@ -14,6 +14,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as DocumentPicker from 'expo-document-picker';
 import styles from '../../../assets/styles/createQuiz.style';
 import Header from '../../../components/header';
+import DrawerToggle from "../../../components/drawerToggle";
 
 const CreateQuizScreen = () => {
   const getDefaultDateTime = () => {
@@ -93,9 +94,9 @@ const CreateQuizScreen = () => {
   };
 
   const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', {
-      month: '2-digit',
+    return date.toLocaleDateString('en-IN', {
       day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
     });
   };
@@ -111,6 +112,15 @@ const CreateQuizScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <Header bgr='#fff' />
+      <View style={{
+        position:"absolute",
+        top:52,
+        alignSelf:"flex-end",
+        right:18,
+        }}>
+        <DrawerToggle />
+      </View>
+      
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} bounces={false}>
        
         <View style={styles.card}>

@@ -7,6 +7,7 @@ const COLORS = {
   gradient2: "#6C5CE7",
   white: "#ffffff",
   black: "#000000",
+  header:"#2C3E50",
 
   Purple: {
     primary: "#8B5CF6", // Vibrant Purple

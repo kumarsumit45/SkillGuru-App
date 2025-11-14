@@ -10,9 +10,8 @@ const DrawerToggle = () => {
   return (
     <TouchableOpacity
       onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-    //   style={{ marginLeft: 0, marginTop: 0 }}
     >
-      <Ionicons name="menu" size={32} color={COLORS.Purple.primary} />
+      <Ionicons name="menu" size={32} color={COLORS.header} />
     </TouchableOpacity>
   );
 }
