@@ -10,6 +10,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
   },
+  card:{
+    backgroundColor:"#fff",        //"#d8e0dede",
+    borderWidth:0,
+    marginHorizontal:-5,
+    paddingHorizontal:18,
+    paddingVertical:18,
+    marginTop:-10,
+    marginBottom:25,
+    borderRadius:20
+  },
   section: {
     marginBottom: 24,
   },
@@ -33,8 +43,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   languageButtonActive: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4face6ff',
+    backgroundColor:COLORS.gradient2,//'#4F46E5',
+    borderColor: COLORS.gradient1,       //'#4face6ff',
   },
   languageButtonText: {
     fontSize: 14,
@@ -124,8 +134,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   optionButtonActive: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5',
+    backgroundColor: COLORS.gradient2 ,//'#4F46E5',
+    borderColor: COLORS.gradient1 ,//'#4F46E5',
   },
   optionButtonText: {
     fontSize: 13,
@@ -165,7 +175,7 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
   createButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor:COLORS.gradient2 ,// '#4F46E5',
     borderRadius: 8,
     paddingVertical: 14,
     paddingHorizontal: 16,
