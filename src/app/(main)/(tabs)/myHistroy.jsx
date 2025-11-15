@@ -1,12 +1,11 @@
-import { View, Text } from 'react-native'
-import React from 'react'
+import { Text, View } from 'react-native'
 
-const MyHistoryScreen = () => {
+const MyHistroy = () => {
   return (
-    <View style={{flex:1,alignItems:"center",justifyContent:"center"}}>
-      <Text>MyHistoryScreen</Text>
+    <View>
+      <Text>MyHistroy</Text>
     </View>
   )
 }
 
-export default MyHistoryScreen
+export default MyHistroy

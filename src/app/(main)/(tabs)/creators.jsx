@@ -1,12 +1,12 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 
-const CreatorsScreen = () => {
+const creators = () => {
   return (
-    <View style={{flex:1,alignItems:"center",justifyContent:"center"}}>
-      <Text>CreatorsScreen</Text>
+    <View>
+      <Text>creators</Text>
     </View>
   )
 }
 
-export default CreatorsScreen
+export default creators

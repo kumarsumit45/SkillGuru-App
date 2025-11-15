@@ -1,12 +1,12 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 
-const EarningsScreen = () => {
+const Earnings = () => {
   return (
-    <View style={{flex:1,alignItems:"center",justifyContent:"center"}}>
-      <Text>EarningsScreen</Text>
+    <View>
+      <Text>Earnings</Text>
     </View>
   )
 }
 
-export default EarningsScreen
+export default Earnings

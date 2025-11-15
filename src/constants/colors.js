@@ -8,6 +8,8 @@ const COLORS = {
   white: "#ffffff",
   black: "#000000",
   header:"#2C3E50",
+  fill1:"#3d4a72",
+  fill1border:"#354062ff",
 
   Purple: {
     primary: "#8B5CF6", // Vibrant Purple
