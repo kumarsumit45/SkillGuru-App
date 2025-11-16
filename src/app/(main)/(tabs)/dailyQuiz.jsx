@@ -12,7 +12,6 @@ import SetupCompleteCard from "../../../components/setupCompleteCard";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "../../../assets/styles/dailyQuiz.styles";
 
-
 const DailyQuizScreen = () => {
   // STATE MANAGEMENT - All quiz setup state
 
@@ -64,13 +63,13 @@ const DailyQuizScreen = () => {
   const mathematicsOptions = [
     {
       id: 1,
-      name: "With Mathematics",
+      name: "With Maths",
       icon: "📐",
       description: "Commerce stream including Mathematics",
     },
     {
       id: 2,
-      name: "Without Mathematics",
+      name: "Without Maths",
       icon: "📊",
       description: "Commerce stream without Mathematics",
     },
@@ -189,15 +188,9 @@ const DailyQuizScreen = () => {
           {/*CLASS SELECTION CARD - Choose academic level (5-12)*/}
 
           <View style={styles.configCard}>
-            {/* <View style={styles.configHeader}>
-              <Text style={styles.configLabel}>👤 Select Your Class</Text>
-              <Text style={styles.configHint}>
-                Select your current academic level
-              </Text>
-            </View> */}
             <View style={styles.streamHeader}>
               <View style={styles.streamNumberBadge}>
-                <Ionicons name="person" color={"#fff"} size={22}  />
+                <Ionicons name="person" color={"#fff"} size={22} />
               </View>
               <View>
                 <Text style={styles.streamTitle}>Select Your Class</Text>
@@ -294,11 +287,12 @@ const DailyQuizScreen = () => {
                     }}
                   >
                     <Text style={styles.streamIcon}>{stream.icon}</Text>
-                    <Text 
+                    <Text
                       style={[
                         styles.streamButtonTitle,
-                        selectedStream === stream.name && {color:"#fff"}
-                      ]}>
+                        selectedStream === stream.name && { color: "#fff" },
+                      ]}
+                    >
                       {stream.name}
                     </Text>
                     <Text style={styles.streamButtonDescription}>
@@ -354,11 +348,16 @@ const DailyQuizScreen = () => {
                     }}
                   >
                     <Text style={styles.streamIcon}>{option.icon}</Text>
-                    <Text 
+                    <Text
                       style={[
                         styles.streamButtonTitle,
-                        selectedMathematics === option.name && {color:"#ffff"}
-                        ]}>{option.name}</Text>
+                        selectedMathematics === option.name && {
+                          color: "#ffff",
+                        },
+                      ]}
+                    >
+                      {option.name}
+                    </Text>
                     <Text style={styles.streamButtonDescription}>
                       {option.description}
                     </Text>
@@ -420,11 +419,14 @@ const DailyQuizScreen = () => {
                     }}
                   >
                     <Text style={styles.streamIcon}>{track.icon}</Text>
-                    <Text 
-                       style={[
+                    <Text
+                      style={[
                         styles.streamButtonTitle,
-                        selectedTrack === track.name && {color:"#fff"}
-                        ]}>{track.name}</Text>
+                        selectedTrack === track.name && { color: "#fff" },
+                      ]}
+                    >
+                      {track.name}
+                    </Text>
                     <Text style={styles.streamButtonDescription}>
                       {track.description}
                     </Text>
@@ -456,7 +458,7 @@ const DailyQuizScreen = () => {
 
           {/* 
               SUBJECTS SELECTION CARD - Only shows when Humanities is selected
-              Choose at least 3 core subjects + optional subjects
+              Choose at least 4 core subjects + optional subjects
           */}
           {selectedStream === "Humanities" && (
             <View style={styles.streamCard}>
@@ -484,11 +486,16 @@ const DailyQuizScreen = () => {
                     onPress={() => toggleSubject(subject.id)}
                   >
                     <Text style={styles.subjectIcon}>{subject.icon}</Text>
-                    <Text 
+                    <Text
                       style={[
                         styles.subjectName,
-                        selectedSubjects.includes(subject.id) && { color: "#fff" }
-                      ]}>{subject.name}</Text>
+                        selectedSubjects.includes(subject.id) && {
+                          color: "#fff",
+                        },
+                      ]}
+                    >
+                      {subject.name}
+                    </Text>
                     {subject.type === "optional" && (
                       <Text style={styles.optionalLabel}>Optional</Text>
                     )}
@@ -540,5 +547,3 @@ const DailyQuizScreen = () => {
 };
 
 export default DailyQuizScreen;
-
-
