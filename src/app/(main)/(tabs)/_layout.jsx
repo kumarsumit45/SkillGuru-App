@@ -48,10 +48,10 @@ const Tablayout = () => {
         }}
       />
       <Tabs.Screen
-        name="myHistroy"
+        name="courses"
         options={{
-          title: "My Histroy",
-          tabBarLabel: "My Histroy",
+          title: "Courses",
+          tabBarLabel: "Courses",
           tabBarIcon:()=>(
             <Image source={BarIcons.history} style={{height:25,width:25}} contentFit="contain" />
           )
