@@ -5,23 +5,23 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-export default function CourseCard() {
+export default function CourseCard({title,subject,speaking,material,guru,progress,time}) {
   const [isFavorite, setIsFavorite] = useState(false);
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
+      <TouchableOpacity activeOpacity={0.7} style={styles.card}>
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.playButtonContainer}>
             <View style={styles.playButton}>
-              <Ionicons name="play" size={32} color={"#fff"} />
+              <Ionicons name="play" size={32} color={"#fff"} style={{left:2}}/>
             </View>
           </View>
 
           <View style={styles.titleSection}>
-            <Text style={styles.classTitle}>Class 11</Text>
-            <Text style={styles.subject}>Chemistry</Text>
+            <Text style={styles.classTitle}>{title}</Text>
+            <Text style={styles.subject}>{subject}</Text>
           </View>
 
           <TouchableOpacity
@@ -54,20 +54,20 @@ export default function CourseCard() {
               style={styles.detailIcon}
             />
             <Text style={styles.detailLabel}>Speaking: </Text>
-            <Text style={styles.detailValue}>Hindi + English</Text>
+            <Text style={styles.detailValue}>{speaking}</Text>
           </View>
 
           <View style={styles.detailRow}>
             <Text style={styles.detailIcon}>📘</Text>
             <Text style={styles.detailLabel}>Material: </Text>
-            <Text style={styles.detailValue}>English</Text>
+            <Text style={styles.detailValue}>{material}</Text>
           </View>
 
           <View style={styles.detailRow}>
             <Text style={styles.detailIcon}>👩‍🏫</Text>
             <Text style={styles.detailLabel}>Guru: </Text>
             <Text style={styles.detailValue}>
-              Shilpi Mam ( Vendatu JEE Made Ejee )
+              {guru}
             </Text>
           </View>
         </View>
@@ -75,7 +75,7 @@ export default function CourseCard() {
         {/* Progress Bar */}
         <View style={styles.progressSection}>
           <View style={styles.progressBar}>
-            <View style={styles.progressFill} />
+            <View style={[styles.progressFill,{ width: `${progress}%` }]} />
           </View>
         </View>
 
@@ -83,18 +83,19 @@ export default function CourseCard() {
         <View style={styles.footer}>
           <View style={styles.timeContainer}>
             <Text style={styles.timeIcon}>⏱</Text>
-            <Text style={styles.timeText}>0m 0s</Text>
+            <Text style={styles.timeText}>{time}</Text>
           </View>
-          <Text style={styles.completeText}>0% Complete</Text>
+          <Text style={styles.completeText}>{progress}% Complete</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 14,
+    paddingVertical:10,
+    paddingHorizontal:5,
     justifyContent: "center",
     alignItems: "center",
   },
