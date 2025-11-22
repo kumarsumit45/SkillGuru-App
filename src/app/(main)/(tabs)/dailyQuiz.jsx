@@ -1,549 +1,297 @@
-import { useState } from "react";
-import { FlatList } from "react-native";
+import React, { useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import SetupCompleteCard from "../../../components/setupCompleteCard";
-import { Ionicons } from "@expo/vector-icons";
-import styles from "../../../assets/styles/dailyQuiz.styles";
+  TouchableOpacity,
+  FlatList,
+  
+} from 'react-native';
+import  { SafeAreaView } from "react-native-safe-area-context"
+import QuizCard from "../../../components/quizCard";
 
-const DailyQuizScreen = () => {
-  // STATE MANAGEMENT - All quiz setup state
+const QuizArenaScreen = () => {
+  const [selectedLanguage, setSelectedLanguage] = useState('ALL');
+  const [selectedCategory, setSelectedCategory] = useState('upcoming');
 
-  const [setupProgress, setSetupProgress] = useState(0);
-  const [selectedClass, setSelectedClass] = useState("");
-  const [selectedStream, setSelectedStream] = useState("");
-  const [selectedMathematics, setSelectedMathematics] = useState("");
-  const [selectedTrack, setSelectedTrack] = useState("");
-  const [selectedSubjects, setSelectedSubjects] = useState([]);
-
-  // DATA DEFINITIONS - Class options (5-12)
-
-  const classes = [
-    { id: 1, name: "Class 5" },
-    { id: 2, name: "Class 6" },
-    { id: 3, name: "Class 7" },
-    { id: 4, name: "Class 8" },
-    { id: 5, name: "Class 9" },
-    { id: 6, name: "Class 10" },
-    { id: 7, name: "Class 11" },
-    { id: 8, name: "Class 12" },
+  const quizData = [
+    {
+      id: '1',
+      title: 'JEE Main • Optics',
+      subject: 'JEE Main • Physics',
+      startTime: '22 Nov 2025, 11:00 am',
+      difficulty: 'easy',
+      questions: '10',
+      duration: '30 min',
+      timeLeft: '0 min',
+      isLive: true,
+      tags: ['JEE Main', 'Physics'],
+      prize: false,
+      startedAgo: 'Started 1 hr ago',
+    },
+    {
+      id: '2',
+      title: 'NDA • Geometry',
+      subject: 'NDA • Mathematics',
+      startTime: '22 Nov 2025, 11:00 am',
+      difficulty: 'Intermediate',
+      questions: '10',
+      duration: '30 min',
+      timeLeft: '0 min',
+      isLive: true,
+      tags: ['NDA'],
+      prize: false,
+      startedAgo: 'Started 1 hr ago',
+    },
+    {
+      id: '3',
+      title: 'SSC CHSL • Data Interpretation',
+      subject: 'SSC CHSL • English',
+      startTime: '22 Nov 2025, 11:00 am',
+      difficulty: 'easy',
+      questions: '10',
+      duration: '30 min',
+      timeLeft: '0 min',
+      isLive: true,
+      tags: ['SSC CHSL'],
+      prize: false,
+      startedAgo: 'Started 1 hr ago',
+    },
+    {
+      id: '4',
+      title: 'Class 12 • Inorganic Chemistry',
+      subject: 'Class 12 • Chemistry',
+      startTime: '22 Nov 2025, 10:00 am',
+      difficulty: 'Intermediate',
+      questions: '10',
+      duration: '30 min',
+      timeLeft: '0 min',
+      isLive: true,
+      tags: ['Class 12'],
+      prize: false,
+      startedAgo: 'Started 2 hrs ago',
+    },
+    {
+      id: '5',
+      title: 'Railways NTPC • Mensuration',
+      subject: 'Railways NTPC • Mathematics',
+      startTime: '22 Nov 2025, 10:00 am',
+      difficulty: 'Intermediate',
+      questions: '10',
+      duration: '30 min',
+      timeLeft: '0 min',
+      isLive: true,
+      tags: ['Railways NTPC', 'English'],
+      prize: false,
+      startedAgo: 'Started 2 hrs ago',
+    },
+    {
+      id: '6',
+      title: 'SSC CGL • History',
+      subject: 'SSC CGL • General',
+      startTime: '22 Nov 2025, 9:00 am',
+      difficulty: 'Intermediate',
+      questions: '10',
+      duration: '30 min',
+      timeLeft: '0 min',
+      isLive: true,
+      tags: ['SSC CGL'],
+      prize: false,
+      startedAgo: 'Started 3 hrs ago',
+    },
   ];
 
-  // DATA DEFINITIONS - Stream options (Science, Commerce, Humanities)
+  const categoryTabs = ['LIVE', 'UPCOMING', 'ATTEMPTED'];
 
-  const streams = [
-    {
-      id: 1,
-      name: "Science",
-      icon: "🔬",
-      description: "Physics, Chemistry, Biology/Mathematics",
-    },
-    {
-      id: 2,
-      name: "Commerce",
-      icon: "💼",
-      description: "Business Studies, Economics, Accountancy",
-    },
-    {
-      id: 3,
-      name: "Humanities",
-      icon: "📚",
-      description: "History, Geography, Political Science",
-    },
-  ];
-
-  // DATA DEFINITIONS - Mathematics options for Commerce stream
-
-  const mathematicsOptions = [
-    {
-      id: 1,
-      name: "With Maths",
-      icon: "📐",
-      description: "Commerce stream including Mathematics",
-    },
-    {
-      id: 2,
-      name: "Without Maths",
-      icon: "📊",
-      description: "Commerce stream without Mathematics",
-    },
-  ];
-
-  // DATA DEFINITIONS - Science track options (Medical/Engineering)
-
-  const scienceTracks = [
-    {
-      id: 1,
-      name: "Medical Track",
-      icon: "🩺",
-      description: "Physics, Chemistry, Biology",
-    },
-    {
-      id: 2,
-      name: "Engineering Track",
-      icon: "🛠️",
-      description: "Physics, Chemistry, Maths",
-    },
-  ];
-
-  // DATA DEFINITIONS - Humanities subjects (Core + Optional)
-
-  const humanitiesSubjects = [
-    { id: 1, name: "History", icon: "📖", type: "core" },
-    { id: 2, name: "Political Science", icon: "🏛️", type: "core" },
-    { id: 3, name: "Geography", icon: "🌍", type: "core" },
-    { id: 4, name: "English", icon: "📚", type: "core" },
-    { id: 5, name: "Economics", icon: "💰", type: "optional" },
-    { id: 6, name: "Psychology", icon: "🧠", type: "optional" },
-  ];
-
-  // HANDLER FUNCTIONS - Subject selection toggle
-
-  const toggleSubject = (subjectId) => {
-    setSelectedSubjects((prevSubjects) =>
-      prevSubjects.includes(subjectId)
-        ? prevSubjects.filter((id) => id !== subjectId)
-        : [...prevSubjects, subjectId]
-    );
+  const handleStartQuiz = (quizId) => {
+    console.log('Start Quiz:', quizId);
+    // Navigate to quiz screen
   };
 
-  // COMPUTED VALUES - Count selected subjects by type
-
-  const coreSubjectsCount = humanitiesSubjects.filter(
-    (s) => s.type === "core" && selectedSubjects.includes(s.id)
-  ).length;
-  const optionalSubjectsCount = humanitiesSubjects.filter(
-    (s) => s.type === "optional" && selectedSubjects.includes(s.id)
-  ).length;
-
   return (
-    <SafeAreaView>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* QUIZ HEADER SECTION - Title, Info Cards, Actions & Trophy */}
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.badgeText}>🟢 LIVE QUIZ ARENA</Text>
+        <Text style={styles.headerTitle}>Live, upcoming & attempted quizzes</Text>
+        <Text style={styles.headerSubtitle}>
+          Pick a live quiz to join instantly, explore upcoming sessions or review your attempt history.
+        </Text>
+      </View>
 
-        <View style={styles.quizHeaderContainer}>
-          <Text style={styles.quizMainTitle}>CBSE Quiz Challenge</Text>
+      {/* Description Section */}
+      <View style={styles.infoSection}>
+        <Text style={styles.infoText}>
+          Showing recommended quizzes across all categories and ranked from most visited.
+        </Text>
+      </View>
 
-          <View style={styles.infoCardsContainer}>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoValue}>25 Minutes</Text>
-              <Text style={styles.infoLabel}>Challenge Duration</Text>
-            </View>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoValue}>8 PM - 8:25 PM</Text>
-              <Text style={styles.infoLabel}>Daily Schedule</Text>
-            </View>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoValue}>₹100</Text>
-              <Text style={styles.infoLabel}>Winner Prize</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>Start Quiz Setup</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>📋 Copy Link</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>🔗 Share Link</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.shareHelperText}>
-            Share this link with your friends to invite them to the quiz!
-          </Text>
-
-          <View style={styles.trophyContainer}>
-            <Text style={styles.trophyEmoji}>🏆</Text>
-          </View>
+      {/* Language Selector */}
+      <View style={styles.languageSection}>
+        <Text style={styles.languageLabel}>LANGUAGE</Text>
+        <View style={styles.languageTabs}>
+          {['ALL LANGUAGES', 'ENGLISH', 'HINDI'].map((lang) => (
+            <TouchableOpacity
+              key={lang}
+              style={[
+                styles.languageTab,
+                selectedLanguage === lang && styles.languageTabActive,
+              ]}
+              onPress={() => setSelectedLanguage(lang)}
+            >
+              <Text
+                style={[
+                  styles.languageTabText,
+                  selectedLanguage === lang && styles.languageTabTextActive,
+                ]}
+              >
+                {lang}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
+      </View>
 
-        {/* PROGRESS SECTION - Setup progress bar with percentage*/}
-
-        <View style={styles.progressSection}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressLabel}>Setup Progress</Text>
-            <Text style={styles.progressPercent}>{setupProgress}%</Text>
-          </View>
-          <View style={styles.progressBar}>
-            <View
-              style={[styles.progressFill, { width: `${setupProgress}%` }]}
-            />
-          </View>
-        </View>
-
-        {/* CONFIGURATION SECTION - Main setup flow starts here */}
-
-        <View style={styles.configureSection}>
-          <Text style={styles.configureTitle}>Configure Your Quiz</Text>
-
-          {/*CLASS SELECTION CARD - Choose academic level (5-12)*/}
-
-          <View style={styles.configCard}>
-            <View style={styles.streamHeader}>
-              <View style={styles.streamNumberBadge}>
-                <Ionicons name="person" color={"#fff"} size={22} />
-              </View>
-              <View>
-                <Text style={styles.streamTitle}>Select Your Class</Text>
-                <Text style={styles.streamHint}>
-                  Select your current academic level
-                </Text>
-              </View>
+      {/* Category Tabs */}
+      <View style={styles.categoryTabs}>
+        {categoryTabs.map((category) => (
+          <TouchableOpacity
+            key={category}
+            style={[
+              styles.categoryTab,
+              selectedCategory === category.toLowerCase() && styles.categoryTabActive,
+            ]}
+            onPress={() => setSelectedCategory(category.toLowerCase())}
+          >
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryBadgeText}>{category}</Text>
+              <Text style={styles.categoryCount}>({category === 'LIVE' ? 6 : category === 'UPCOMING' ? 543 : 0})</Text>
             </View>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-            <FlatList
-              data={classes}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.classButton,
-                    selectedClass === item.name && styles.classButtonActive,
-                  ]}
-                  onPress={() => {
-                    setSelectedClass(item.name);
-                    {
-                      selectedClass === "Class 11" ||
-                      selectedClass === "Class 12"
-                        ? setSetupProgress(33)
-                        : setSetupProgress(100);
-                    }
-                    setSelectedStream("");
-                    setSelectedMathematics("");
-                    setSelectedTrack("");
-                    setSelectedSubjects([]);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.classButtonText,
-                      selectedClass === item.name &&
-                        styles.classButtonTextActive,
-                    ]}
-                  >
-                    {item.name}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              contentContainerStyle={styles.classListContainer}
-            />
-
-            {selectedClass && (
-              <View style={styles.msgContainer}>
-                <View style={styles.content}>
-                  <Text style={styles.checkmark}>✓</Text>
-                  <Text style={styles.message}>
-                    "{selectedClass} selected successfully!"
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
-
-          {/*
-              STREAM SELECTION CARD - Only shows for Class 11 & 12
-              Shows Science, Commerce, Humanities options
-          */}
-          {(selectedClass === "Class 11" || selectedClass === "Class 12") && (
-            <View style={styles.streamCard}>
-              <View style={styles.streamHeader}>
-                <View style={styles.streamNumberBadge}>
-                  <Text style={styles.streamNumber}>2</Text>
-                </View>
-                <View>
-                  <Text style={styles.streamTitle}>Choose Your Stream</Text>
-                  <Text style={styles.streamHint}>
-                    Select your field of study
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.streamsContainer}>
-                {streams.map((stream) => (
-                  <TouchableOpacity
-                    key={stream.id}
-                    style={[
-                      styles.streamButton,
-                      selectedStream === stream.name &&
-                        styles.streamButtonActive,
-                    ]}
-                    onPress={() => {
-                      setSelectedStream(stream.name);
-                      setSetupProgress(66);
-                      setSelectedMathematics("");
-                      setSelectedTrack("");
-                      setSelectedSubjects([]);
-                    }}
-                  >
-                    <Text style={styles.streamIcon}>{stream.icon}</Text>
-                    <Text
-                      style={[
-                        styles.streamButtonTitle,
-                        selectedStream === stream.name && { color: "#fff" },
-                      ]}
-                    >
-                      {stream.name}
-                    </Text>
-                    <Text style={styles.streamButtonDescription}>
-                      {stream.description}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {selectedStream && (
-                <View style={styles.msgContainer}>
-                  <View style={styles.content}>
-                    <Text style={styles.checkmark}>✓</Text>
-                    <Text style={styles.message}>
-                      "{selectedStream} stream selected!"
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          )}
-
-          {/*
-              MATHEMATICS OPTION CARD - Only shows when Commerce is selected
-              Choose between With/Without Mathematics
-        */}
-          {selectedStream === "Commerce" && (
-            <View style={styles.streamCard}>
-              <View style={styles.streamHeader}>
-                <View style={styles.streamNumberBadge}>
-                  <Text style={styles.streamNumber}>3</Text>
-                </View>
-                <View>
-                  <Text style={styles.streamTitle}>Mathematics Option</Text>
-                  <Text style={styles.streamHint}>
-                    Do you study Mathematics?
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.streamsContainer}>
-                {mathematicsOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option.id}
-                    style={[
-                      styles.streamButton,
-                      selectedMathematics === option.name &&
-                        styles.streamButtonActive,
-                    ]}
-                    onPress={() => {
-                      setSelectedMathematics(option.name);
-                      setSetupProgress(100);
-                    }}
-                  >
-                    <Text style={styles.streamIcon}>{option.icon}</Text>
-                    <Text
-                      style={[
-                        styles.streamButtonTitle,
-                        selectedMathematics === option.name && {
-                          color: "#ffff",
-                        },
-                      ]}
-                    >
-                      {option.name}
-                    </Text>
-                    <Text style={styles.streamButtonDescription}>
-                      {option.description}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {selectedMathematics && (
-                <View style={styles.msgContainer}>
-                  <View style={styles.content}>
-                    <Text style={styles.checkmark}>✓</Text>
-                    <Text style={styles.message}>
-                      "{selectedMathematics} selected!"
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* 
-              SETUP COMPLETE - Commerce path completion
-              Shows when Mathematics option is selected
-         */}
-
-          {selectedMathematics && selectedStream === "Commerce" && (
-            <SetupCompleteCard />
-          )}
-
-          {/*
-              SCIENCE TRACK CARD - Only shows when Science is selected
-              Choose between Medical/Engineering tracks
-          */}
-          {selectedStream === "Science" && (
-            <View style={styles.streamCard}>
-              <View style={styles.streamHeader}>
-                <View style={styles.streamNumberBadge}>
-                  <Text style={styles.streamNumber}>3</Text>
-                </View>
-                <View>
-                  <Text style={styles.streamTitle}>Select Science Track</Text>
-                  <Text style={styles.streamHint}>
-                    Choose your subject combination
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.streamsContainer}>
-                {scienceTracks.map((track) => (
-                  <TouchableOpacity
-                    key={track.id}
-                    style={[
-                      styles.streamButton,
-                      selectedTrack === track.name && styles.streamButtonActive,
-                    ]}
-                    onPress={() => {
-                      setSelectedTrack(track.name);
-                      setSetupProgress(100);
-                    }}
-                  >
-                    <Text style={styles.streamIcon}>{track.icon}</Text>
-                    <Text
-                      style={[
-                        styles.streamButtonTitle,
-                        selectedTrack === track.name && { color: "#fff" },
-                      ]}
-                    >
-                      {track.name}
-                    </Text>
-                    <Text style={styles.streamButtonDescription}>
-                      {track.description}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {selectedTrack && (
-                <View style={styles.msgContainer}>
-                  <View style={styles.content}>
-                    <Text style={styles.checkmark}>✓</Text>
-                    <Text style={styles.message}>
-                      "{selectedTrack} selected!"
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          )}
-
-          {/*
-              SETUP COMPLETE - Science path completion
-              Shows when Science track is selected
-          */}
-
-          {selectedTrack && selectedStream === "Science" && (
-            <SetupCompleteCard />
-          )}
-
-          {/* 
-              SUBJECTS SELECTION CARD - Only shows when Humanities is selected
-              Choose at least 4 core subjects + optional subjects
-          */}
-          {selectedStream === "Humanities" && (
-            <View style={styles.streamCard}>
-              <View style={styles.streamHeader}>
-                <View style={styles.streamNumberBadge}>
-                  <Text style={styles.streamNumber}>3</Text>
-                </View>
-                <View>
-                  <Text style={styles.streamTitle}>Select Subjects</Text>
-                  <Text style={styles.streamHint}>
-                    Choose at least 5 subjects from your curriculum
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.subjectsGrid}>
-                {humanitiesSubjects.map((subject) => (
-                  <TouchableOpacity
-                    key={subject.id}
-                    style={[
-                      styles.subjectButton,
-                      selectedSubjects.includes(subject.id) &&
-                        styles.subjectButtonActive,
-                    ]}
-                    onPress={() => toggleSubject(subject.id)}
-                  >
-                    <Text style={styles.subjectIcon}>{subject.icon}</Text>
-                    <Text
-                      style={[
-                        styles.subjectName,
-                        selectedSubjects.includes(subject.id) && {
-                          color: "#fff",
-                        },
-                      ]}
-                    >
-                      {subject.name}
-                    </Text>
-                    {subject.type === "optional" && (
-                      <Text style={styles.optionalLabel}>Optional</Text>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {selectedSubjects.length > 0 && (
-                <View style={styles.msgContainer}>
-                  <View style={styles.content}>
-                    <Text style={styles.checkmark}>✓</Text>
-                    <Text style={styles.message}>
-                      Core subjects selected: {coreSubjectsCount}/4
-                    </Text>
-                  </View>
-                  <View style={styles.content}>
-                    <Text style={styles.checkmark}>✓</Text>
-                    <Text style={styles.message}>
-                      Optional selected: {optionalSubjectsCount}/2
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* 
-                  SETUP COMPLETE - Humanities path completion
-                  Shows when 4 core subjects are selected
-               */}
-            </View>
-          )}
-
-          {coreSubjectsCount === 4 && (
-            <>
-              {setSetupProgress(100)}
-              <SetupCompleteCard />
-            </>
-          )}
-
-          {/* SETUP COMPLETE - Classes 5-10 path
-              Shows immediately after class selection for non-11/12 classes */}
-
-          {selectedClass &&
-            selectedClass !== "Class 11" &&
-            selectedClass !== "Class 12" && <SetupCompleteCard />}
-        </View>
-      </ScrollView>
+      {/* Quiz List */}
+      <FlatList
+        data={quizData}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <QuizCard quiz={item} onStartQuiz={handleStartQuiz} />
+        )}
+        contentContainerStyle={styles.quizList}
+        showsVerticalScrollIndicator={false}
+      />
     </SafeAreaView>
   );
 };
 
-export default DailyQuizScreen;
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#d0e7f7',
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#10B981',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
+  },
+  infoSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "trasparent",
+    marginVertical: 8,
+  },
+  infoText: {
+    fontSize: 12,
+    color: '#6B7280',
+    lineHeight: 16,
+  },
+  languageSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  languageLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  languageTabs: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  languageTab: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+  },
+  languageTabActive: {
+    backgroundColor: '#DC2626',
+  },
+  languageTabText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  languageTabTextActive: {
+    color: '#FFFFFF',
+  },
+  categoryTabs: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  categoryTab: {
+    flex: 1,
+  },
+  categoryTabActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#DC2626',
+  },
+  categoryBadge: {
+    alignItems: 'center',
+  },
+  categoryBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#DC2626',
+    letterSpacing: 0.5,
+  },
+  categoryCount: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  quizList: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    paddingBottom: 20,
+  },
+});
+
+export default QuizArenaScreen;
