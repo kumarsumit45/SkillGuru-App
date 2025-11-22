@@ -12,12 +12,24 @@ const QuizCard = ({ quiz, onStartQuiz }) => {
     <View style={styles.card}>
       {/* Header with Live Badge */}
       <View style={styles.cardHeader}>
-        <View style={styles.liveIndicator}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveText}>Live right now</Text>
-        </View>
+        {quiz.category === 'live' && (
+          <View style={styles.liveIndicator}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>Live right now</Text>
+          </View>
+        )}
+        {quiz.category === 'upcoming' && (
+          <View style={styles.upcomingIndicator}>
+            <Text style={styles.upcomingText}>Upcoming</Text>
+          </View>
+        )}
+        {quiz.category === 'attempted' && quiz.score && (
+          <View style={styles.scoreIndicator}>
+            <Text style={styles.scoreText}>Score: {quiz.score}</Text>
+          </View>
+        )}
         <TouchableOpacity>
-          <Text style={styles.prizeText}>No Prize</Text>
+          <Text style={styles.prizeText}>{quiz.prize ? 'Prize Quiz' : 'No Prize'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -51,7 +63,11 @@ const QuizCard = ({ quiz, onStartQuiz }) => {
 
       {/* Start Time */}
       <View style={styles.timeContainer}>
-        <Text style={styles.timeLabel}>STARTED AT</Text>
+        <Text style={styles.timeLabel}>
+          {quiz.category === 'live' ? 'STARTED AT' :
+           quiz.category === 'upcoming' ? 'STARTS AT' :
+           'ATTEMPTED ON'}
+        </Text>
         <Text style={styles.timeValue}>{quiz.startTime}</Text>
       </View>
 
@@ -65,20 +81,36 @@ const QuizCard = ({ quiz, onStartQuiz }) => {
           <Text style={styles.statLabel}>DURATION</Text>
           <Text style={styles.statValue}>{quiz.duration}</Text>
         </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>TIME LEFT</Text>
-          <Text style={styles.statValue}>{quiz.timeLeft}</Text>
-        </View>
+        {quiz.category === 'live' && (
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>TIME LEFT</Text>
+            <Text style={styles.statValue}>{quiz.timeLeft}</Text>
+          </View>
+        )}
+        {quiz.category === 'attempted' && quiz.score && (
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>YOUR SCORE</Text>
+            <Text style={[styles.statValue, styles.scoreHighlight]}>{quiz.score}</Text>
+          </View>
+        )}
       </View>
 
       {/* Footer */}
       <View style={styles.cardFooter}>
         <Text style={styles.startedAgo}>{quiz.startedAgo}</Text>
         <TouchableOpacity
-          style={styles.startButton}
+          style={[
+            styles.startButton,
+            quiz.category === 'upcoming' && styles.upcomingButton,
+            quiz.category === 'attempted' && styles.attemptedButton,
+          ]}
           onPress={() => onStartQuiz(quiz.id)}
         >
-          <Text style={styles.startButtonText}>START QUIZ</Text>
+          <Text style={styles.startButtonText}>
+            {quiz.category === 'live' ? 'START QUIZ' :
+             quiz.category === 'upcoming' ? 'NOTIFY ME' :
+             'VIEW RESULTS'}
+          </Text>
           <Text style={styles.startButtonArrow}>→</Text>
         </TouchableOpacity>
       </View>
@@ -121,6 +153,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#10B981',
+  },
+  upcomingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  upcomingText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#2563EB',
+  },
+  scoreIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  scoreText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#D97706',
   },
   prizeText: {
     fontSize: 11,
@@ -225,6 +283,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
   },
+  scoreHighlight: {
+    color: '#059669',
+    fontSize: 14,
+  },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -242,6 +304,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     gap: 6,
+  },
+  upcomingButton: {
+    backgroundColor: '#2563EB',
+  },
+  attemptedButton: {
+    backgroundColor: '#059669',
   },
   startButtonText: {
     fontSize: 12,

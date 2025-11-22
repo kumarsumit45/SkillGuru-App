@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,10 @@ import QuizCard from "../../../components/quizCard";
 
 const QuizArenaScreen = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('ALL');
-  const [selectedCategory, setSelectedCategory] = useState('upcoming');
+  const [selectedCategory, setSelectedCategory] = useState('live');
 
   const quizData = [
+    // LIVE Quizzes
     {
       id: '1',
       title: 'JEE Main • Optics',
@@ -24,11 +25,12 @@ const QuizArenaScreen = () => {
       difficulty: 'easy',
       questions: '10',
       duration: '30 min',
-      timeLeft: '0 min',
+      timeLeft: '15 min',
       isLive: true,
+      category: 'live',
       tags: ['JEE Main', 'Physics'],
       prize: false,
-      startedAgo: 'Started 1 hr ago',
+      startedAgo: 'Started 15 min ago',
     },
     {
       id: '2',
@@ -38,11 +40,12 @@ const QuizArenaScreen = () => {
       difficulty: 'Intermediate',
       questions: '10',
       duration: '30 min',
-      timeLeft: '0 min',
+      timeLeft: '20 min',
       isLive: true,
+      category: 'live',
       tags: ['NDA'],
       prize: false,
-      startedAgo: 'Started 1 hr ago',
+      startedAgo: 'Started 10 min ago',
     },
     {
       id: '3',
@@ -52,11 +55,12 @@ const QuizArenaScreen = () => {
       difficulty: 'easy',
       questions: '10',
       duration: '30 min',
-      timeLeft: '0 min',
+      timeLeft: '25 min',
       isLive: true,
+      category: 'live',
       tags: ['SSC CHSL'],
       prize: false,
-      startedAgo: 'Started 1 hr ago',
+      startedAgo: 'Started 5 min ago',
     },
     {
       id: '4',
@@ -66,11 +70,12 @@ const QuizArenaScreen = () => {
       difficulty: 'Intermediate',
       questions: '10',
       duration: '30 min',
-      timeLeft: '0 min',
+      timeLeft: '10 min',
       isLive: true,
+      category: 'live',
       tags: ['Class 12'],
       prize: false,
-      startedAgo: 'Started 2 hrs ago',
+      startedAgo: 'Started 20 min ago',
     },
     {
       id: '5',
@@ -80,11 +85,12 @@ const QuizArenaScreen = () => {
       difficulty: 'Intermediate',
       questions: '10',
       duration: '30 min',
-      timeLeft: '0 min',
+      timeLeft: '5 min',
       isLive: true,
+      category: 'live',
       tags: ['Railways NTPC', 'English'],
       prize: false,
-      startedAgo: 'Started 2 hrs ago',
+      startedAgo: 'Started 25 min ago',
     },
     {
       id: '6',
@@ -94,13 +100,138 @@ const QuizArenaScreen = () => {
       difficulty: 'Intermediate',
       questions: '10',
       duration: '30 min',
-      timeLeft: '0 min',
+      timeLeft: '8 min',
       isLive: true,
+      category: 'live',
       tags: ['SSC CGL'],
       prize: false,
-      startedAgo: 'Started 3 hrs ago',
+      startedAgo: 'Started 22 min ago',
+    },
+    // UPCOMING Quizzes
+    {
+      id: '7',
+      title: 'UPSC • Indian Polity',
+      subject: 'UPSC • General Studies',
+      startTime: '23 Nov 2025, 10:00 am',
+      difficulty: 'hard',
+      questions: '15',
+      duration: '45 min',
+      timeLeft: '',
+      isLive: false,
+      category: 'upcoming',
+      tags: ['UPSC', 'GS'],
+      prize: true,
+      startedAgo: 'Starts in 1 day',
+    },
+    {
+      id: '8',
+      title: 'NEET • Human Anatomy',
+      subject: 'NEET • Biology',
+      startTime: '23 Nov 2025, 2:00 pm',
+      difficulty: 'Intermediate',
+      questions: '20',
+      duration: '60 min',
+      timeLeft: '',
+      isLive: false,
+      category: 'upcoming',
+      tags: ['NEET', 'Biology'],
+      prize: false,
+      startedAgo: 'Starts in 1 day',
+    },
+    {
+      id: '9',
+      title: 'Bank PO • Quantitative Aptitude',
+      subject: 'Bank PO • Mathematics',
+      startTime: '24 Nov 2025, 11:00 am',
+      difficulty: 'Intermediate',
+      questions: '25',
+      duration: '50 min',
+      timeLeft: '',
+      isLive: false,
+      category: 'upcoming',
+      tags: ['Bank PO'],
+      prize: true,
+      startedAgo: 'Starts in 2 days',
+    },
+    {
+      id: '10',
+      title: 'CAT • Logical Reasoning',
+      subject: 'CAT • Reasoning',
+      startTime: '25 Nov 2025, 9:00 am',
+      difficulty: 'hard',
+      questions: '30',
+      duration: '60 min',
+      timeLeft: '',
+      isLive: false,
+      category: 'upcoming',
+      tags: ['CAT'],
+      prize: true,
+      startedAgo: 'Starts in 3 days',
+    },
+    // ATTEMPTED Quizzes
+    {
+      id: '11',
+      title: 'JEE Main • Thermodynamics',
+      subject: 'JEE Main • Physics',
+      startTime: '20 Nov 2025, 3:00 pm',
+      difficulty: 'Intermediate',
+      questions: '10',
+      duration: '30 min',
+      timeLeft: '',
+      isLive: false,
+      category: 'attempted',
+      tags: ['JEE Main', 'Physics'],
+      prize: false,
+      startedAgo: 'Attempted 2 days ago',
+      score: '8/10',
+    },
+    {
+      id: '12',
+      title: 'SSC CGL • English Grammar',
+      subject: 'SSC CGL • English',
+      startTime: '19 Nov 2025, 11:00 am',
+      difficulty: 'easy',
+      questions: '15',
+      duration: '20 min',
+      timeLeft: '',
+      isLive: false,
+      category: 'attempted',
+      tags: ['SSC CGL', 'English'],
+      prize: false,
+      startedAgo: 'Attempted 3 days ago',
+      score: '12/15',
+    },
+    {
+      id: '13',
+      title: 'NEET • Organic Chemistry',
+      subject: 'NEET • Chemistry',
+      startTime: '18 Nov 2025, 2:00 pm',
+      difficulty: 'hard',
+      questions: '20',
+      duration: '40 min',
+      timeLeft: '',
+      isLive: false,
+      category: 'attempted',
+      tags: ['NEET', 'Chemistry'],
+      prize: false,
+      startedAgo: 'Attempted 4 days ago',
+      score: '15/20',
     },
   ];
+
+  // Filter quizzes based on selected category
+  const filteredQuizzes = useMemo(() => {
+    return quizData.filter(quiz => quiz.category === selectedCategory);
+  }, [selectedCategory]);
+
+  // Get counts for each category
+  const categoryCounts = useMemo(() => {
+    return {
+      live: quizData.filter(q => q.category === 'live').length,
+      upcoming: quizData.filter(q => q.category === 'upcoming').length,
+      attempted: quizData.filter(q => q.category === 'attempted').length,
+    };
+  }, []);
 
   const categoryTabs = ['LIVE', 'UPCOMING', 'ATTEMPTED'];
 
@@ -113,7 +244,7 @@ const QuizArenaScreen = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.badgeText}>🟢 LIVE QUIZ ARENA</Text>
+        <Text style={styles.badgeText}>🟢  LIVE QUIZ ARENA</Text>
         <Text style={styles.headerTitle}>Live, upcoming & attempted quizzes</Text>
         <Text style={styles.headerSubtitle}>
           Pick a live quiz to join instantly, explore upcoming sessions or review your attempt history.
@@ -166,7 +297,7 @@ const QuizArenaScreen = () => {
           >
             <View style={styles.categoryBadge}>
               <Text style={styles.categoryBadgeText}>{category}</Text>
-              <Text style={styles.categoryCount}>({category === 'LIVE' ? 6 : category === 'UPCOMING' ? 543 : 0})</Text>
+              <Text style={styles.categoryCount}>({categoryCounts[category.toLowerCase()]})</Text>
             </View>
           </TouchableOpacity>
         ))}
@@ -174,7 +305,7 @@ const QuizArenaScreen = () => {
 
       {/* Quiz List */}
       <FlatList
-        data={quizData}
+        data={filteredQuizzes}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <QuizCard quiz={item} onStartQuiz={handleStartQuiz} />
@@ -264,6 +395,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 8,
     backgroundColor: '#FFFFFF',
+    // borderWidth:1
   },
   categoryTab: {
     flex: 1,
@@ -274,6 +406,7 @@ const styles = StyleSheet.create({
   },
   categoryBadge: {
     alignItems: 'center',
+    // borderWidth:1
   },
   categoryBadgeText: {
     fontSize: 11,
