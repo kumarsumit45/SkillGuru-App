@@ -35,9 +35,17 @@ const QuizCard = ({ quiz, onStartQuiz }) => {
 
       {/* Quiz Details Section */}
       <View style={styles.detailsContainer}>
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>SUBJECT</Text>
-          <Text style={styles.detailValue}>{quiz.subject}</Text>
+        <View style={styles.detailRow}>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>SUBJECT</Text>
+            <Text style={styles.detailValue}>{quiz.subject}</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>DIFFICULTY</Text>
+            <Text style={[styles.detailValue, styles.difficultyText]}>
+              {quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -152,8 +160,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
   detailItem: {
-    marginBottom: 8,
+    flex: 1,
   },
   detailLabel: {
     fontSize: 10,
@@ -166,6 +179,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
     fontWeight: '500',
+  },
+  difficultyText: {
+    color: '#DC2626',
+    fontWeight: '600',
   },
   timeContainer: {
     marginBottom: 12,
