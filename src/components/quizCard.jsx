@@ -108,7 +108,7 @@ const QuizCard = ({ quiz, onStartQuiz }) => {
         >
           <Text style={styles.startButtonText}>
             {quiz.category === 'live' ? 'START QUIZ' :
-             quiz.category === 'upcoming' ? 'NOTIFY ME' :
+             quiz.category === 'upcoming' ? 'VIEW DETAILS' :
              'VIEW RESULTS'}
           </Text>
           <Text style={styles.startButtonArrow}>→</Text>

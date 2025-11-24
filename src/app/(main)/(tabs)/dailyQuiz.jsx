@@ -6,12 +6,14 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  
+
 } from 'react-native';
 import  { SafeAreaView } from "react-native-safe-area-context"
 import QuizCard from "../../../components/quizCard";
+import { useRouter } from 'expo-router';
 
 const QuizArenaScreen = () => {
+  const router = useRouter();
   const [selectedLanguage, setSelectedLanguage] = useState('ALL');
   const [selectedCategory, setSelectedCategory] = useState('live');
 
@@ -237,7 +239,17 @@ const QuizArenaScreen = () => {
 
   const handleStartQuiz = (quizId) => {
     console.log('Start Quiz:', quizId);
-    // Navigate to quiz screen
+    // Find the quiz data by ID
+    const selectedQuiz = quizData.find(q => q.id === quizId);
+    if (selectedQuiz) {
+      // Navigate to QuizDetails screen with quiz data
+      router.push({
+        pathname: '/(main)/QuizDetails',
+        params: {
+          quiz: JSON.stringify(selectedQuiz)
+        }
+      });
+    }
   };
 
   return (
