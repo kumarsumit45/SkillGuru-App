@@ -239,16 +239,23 @@ const QuizArenaScreen = () => {
 
   const handleStartQuiz = (quizId) => {
     console.log('Start Quiz:', quizId);
-    // Find the quiz data by ID
+
     const selectedQuiz = quizData.find(q => q.id === quizId);
     if (selectedQuiz) {
-      // Navigate to QuizDetails screen with quiz data
-      router.push({
-        pathname: '/(main)/QuizDetails',
-        params: {
-          quiz: JSON.stringify(selectedQuiz)
-        }
-      });
+   
+      if (selectedQuiz.category === 'live' || selectedQuiz.category === 'upcoming') {
+        // Navigate to QuizDetails screen with quiz data
+        router.push({
+          pathname: '/(main)/QuizDetails',
+          params: {
+            quiz: JSON.stringify(selectedQuiz)
+          }
+        });
+      } else if (selectedQuiz.category === 'attempted') {
+      
+        console.log('View Results for quiz:', quizId);
+        // Navigate to results page when ready
+      }
     }
   };
 
