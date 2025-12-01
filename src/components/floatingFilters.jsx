@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
@@ -20,10 +21,10 @@ const FloatingFilter = () => {
   const [expandedSections, setExpandedSections] = useState(['classes']);
 
   const categories = [
-    { id: 'recommended', label: 'Recommended for you', icon: '★' },
-    { id: 'classes', label: 'Classes', icon: '☐' },
-    { id: 'ssc', label: 'SSC Exams', icon: '◎' },
-    { id: 'popular', label: 'Popular & Entrance Exams', icon: '💬' },
+    { id: 'recommended', label: 'Recommended for you', icon: 'star' },
+    { id: 'classes', label: 'Classes', icon: 'school' },
+    { id: 'ssc', label: 'SSC Exams', icon: 'document-text' },
+    { id: 'popular', label: 'Popular & Entrance Exams', icon: 'trophy' },
   ];
 
   const classes = [
@@ -200,7 +201,12 @@ const FloatingFilter = () => {
                     }}
                   >
                     <View style={styles.categoryLeft}>
-                      <Text style={styles.categoryIcon}>{category.icon}</Text>
+                      <Ionicons
+                        name={category.icon}
+                        size={20}
+                        color={(selectedCategories.includes(category.id) || expandedSections.includes(category.id)) ? '#C4692C' : '#6B7C93'}
+                        style={styles.categoryIcon}
+                      />
                       <Text
                         style={[
                           styles.categoryLabel,
@@ -393,9 +399,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categoryIcon: {
-    fontSize: 18,
     marginRight: 12,
-    color: '#6B7C93',
   },
   categoryLabel: {
     fontSize: 16,
