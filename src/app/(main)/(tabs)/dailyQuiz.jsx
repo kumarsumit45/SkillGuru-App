@@ -1,16 +1,15 @@
-import React, { useState, useMemo } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-
-} from 'react-native';
-import  { SafeAreaView } from "react-native-safe-area-context"
-import QuizCard from "../../../components/quizCard";
 import { useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
+import FloatingFilter from "../../../components/floatingFilters";
+import QuizCard from "../../../components/quizCard";
 
 const QuizArenaScreen = () => {
   const router = useRouter();
@@ -332,6 +331,9 @@ const QuizArenaScreen = () => {
         contentContainerStyle={styles.quizList}
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Floating Filter Button */}
+      <FloatingFilter />
     </SafeAreaView>
   );
 };
