@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -153,8 +154,10 @@ const FloatingFilter = () => {
         transparent={true}
         onRequestClose={() => setIsOpen(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.bottomSheet}>
+        <TouchableWithoutFeedback onPress={() => setIsOpen(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.bottomSheet}>
             {/* Handle */}
             <View style={styles.handleContainer}>
               <View style={styles.handle} />
@@ -273,7 +276,9 @@ const FloatingFilter = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );
