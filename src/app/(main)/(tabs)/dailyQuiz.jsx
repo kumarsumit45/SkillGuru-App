@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -10,229 +11,127 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import FloatingFilter from "../../../components/floatingFilters";
 import QuizCard from "../../../components/quizCard";
+import { fetchLiveQuizzesOnly, fetchUpcomingQuizzes, fetchUserQuizAttempts } from '../../../api/liveQuizApi';
+import useAuthStore from '../../../store/authStore';
 
 const QuizArenaScreen = () => {
   const router = useRouter();
+  const { uid } = useAuthStore();
   const [selectedLanguage, setSelectedLanguage] = useState('ALL');
   const [selectedCategory, setSelectedCategory] = useState('live');
+  const [quizData, setQuizData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const quizData = [
-    // LIVE Quizzes
-    {
-      id: '1',
-      title: 'JEE Main • Optics',
-      subject: 'JEE Main • Physics',
-      startTime: '22 Nov 2025, 11:00 am',
-      difficulty: 'easy',
-      questions: '10',
-      duration: '30 min',
-      timeLeft: '15 min',
-      isLive: true,
-      category: 'live',
-      tags: ['JEE Main', 'Physics'],
-      prize: false,
-      startedAgo: 'Started 15 min ago',
-    },
-    {
-      id: '2',
-      title: 'NDA • Geometry',
-      subject: 'NDA • Mathematics',
-      startTime: '22 Nov 2025, 11:00 am',
-      difficulty: 'Intermediate',
-      questions: '10',
-      duration: '30 min',
-      timeLeft: '20 min',
-      isLive: true,
-      category: 'live',
-      tags: ['NDA'],
-      prize: false,
-      startedAgo: 'Started 10 min ago',
-    },
-    {
-      id: '3',
-      title: 'SSC CHSL • Data Interpretation',
-      subject: 'SSC CHSL • English',
-      startTime: '22 Nov 2025, 11:00 am',
-      difficulty: 'easy',
-      questions: '10',
-      duration: '30 min',
-      timeLeft: '25 min',
-      isLive: true,
-      category: 'live',
-      tags: ['SSC CHSL'],
-      prize: false,
-      startedAgo: 'Started 5 min ago',
-    },
-    {
-      id: '4',
-      title: 'Class 12 • Inorganic Chemistry',
-      subject: 'Class 12 • Chemistry',
-      startTime: '22 Nov 2025, 10:00 am',
-      difficulty: 'Intermediate',
-      questions: '10',
-      duration: '30 min',
-      timeLeft: '10 min',
-      isLive: true,
-      category: 'live',
-      tags: ['Class 12'],
-      prize: false,
-      startedAgo: 'Started 20 min ago',
-    },
-    {
-      id: '5',
-      title: 'Railways NTPC • Mensuration',
-      subject: 'Railways NTPC • Mathematics',
-      startTime: '22 Nov 2025, 10:00 am',
-      difficulty: 'Intermediate',
-      questions: '10',
-      duration: '30 min',
-      timeLeft: '5 min',
-      isLive: true,
-      category: 'live',
-      tags: ['Railways NTPC', 'English'],
-      prize: false,
-      startedAgo: 'Started 25 min ago',
-    },
-    {
-      id: '6',
-      title: 'SSC CGL • History',
-      subject: 'SSC CGL • General',
-      startTime: '22 Nov 2025, 9:00 am',
-      difficulty: 'Intermediate',
-      questions: '10',
-      duration: '30 min',
-      timeLeft: '8 min',
-      isLive: true,
-      category: 'live',
-      tags: ['SSC CGL'],
-      prize: false,
-      startedAgo: 'Started 22 min ago',
-    },
-    // UPCOMING Quizzes
-    {
-      id: '7',
-      title: 'UPSC • Indian Polity',
-      subject: 'UPSC • General Studies',
-      startTime: '23 Nov 2025, 10:00 am',
-      difficulty: 'hard',
-      questions: '15',
-      duration: '45 min',
-      timeLeft: '',
-      isLive: false,
-      category: 'upcoming',
-      tags: ['UPSC', 'GS'],
-      prize: true,
-      startedAgo: 'Starts in 1 day',
-    },
-    {
-      id: '8',
-      title: 'NEET • Human Anatomy',
-      subject: 'NEET • Biology',
-      startTime: '23 Nov 2025, 2:00 pm',
-      difficulty: 'Intermediate',
-      questions: '20',
-      duration: '60 min',
-      timeLeft: '',
-      isLive: false,
-      category: 'upcoming',
-      tags: ['NEET', 'Biology'],
-      prize: false,
-      startedAgo: 'Starts in 1 day',
-    },
-    {
-      id: '9',
-      title: 'Bank PO • Quantitative Aptitude',
-      subject: 'Bank PO • Mathematics',
-      startTime: '24 Nov 2025, 11:00 am',
-      difficulty: 'Intermediate',
-      questions: '25',
-      duration: '50 min',
-      timeLeft: '',
-      isLive: false,
-      category: 'upcoming',
-      tags: ['Bank PO'],
-      prize: true,
-      startedAgo: 'Starts in 2 days',
-    },
-    {
-      id: '10',
-      title: 'CAT • Logical Reasoning',
-      subject: 'CAT • Reasoning',
-      startTime: '25 Nov 2025, 9:00 am',
-      difficulty: 'hard',
-      questions: '30',
-      duration: '60 min',
-      timeLeft: '',
-      isLive: false,
-      category: 'upcoming',
-      tags: ['CAT'],
-      prize: true,
-      startedAgo: 'Starts in 3 days',
-    },
-    // ATTEMPTED Quizzes
-    {
-      id: '11',
-      title: 'JEE Main • Thermodynamics',
-      subject: 'JEE Main • Physics',
-      startTime: '20 Nov 2025, 3:00 pm',
-      difficulty: 'Intermediate',
-      questions: '10',
-      duration: '30 min',
-      timeLeft: '',
-      isLive: false,
-      category: 'attempted',
-      tags: ['JEE Main', 'Physics'],
-      prize: false,
-      startedAgo: 'Attempted 2 days ago',
-      score: '8/10',
-    },
-    {
-      id: '12',
-      title: 'SSC CGL • English Grammar',
-      subject: 'SSC CGL • English',
-      startTime: '19 Nov 2025, 11:00 am',
-      difficulty: 'easy',
-      questions: '15',
-      duration: '20 min',
-      timeLeft: '',
-      isLive: false,
-      category: 'attempted',
-      tags: ['SSC CGL', 'English'],
-      prize: false,
-      startedAgo: 'Attempted 3 days ago',
-      score: '12/15',
-    },
-    {
-      id: '13',
-      title: 'NEET • Organic Chemistry',
-      subject: 'NEET • Chemistry',
-      startTime: '18 Nov 2025, 2:00 pm',
-      difficulty: 'hard',
-      questions: '20',
-      duration: '40 min',
-      timeLeft: '',
-      isLive: false,
-      category: 'attempted',
-      tags: ['NEET', 'Chemistry'],
-      prize: false,
-      startedAgo: 'Attempted 4 days ago',
-      score: '15/20',
-    },
-  ];
+  // Transform API response to match QuizCard expected format
+  const transformQuizData = (quiz, category) => {
+    // Format duration
+    let duration = '30 min';
+    if (quiz.duration) {
+      duration = typeof quiz.duration === 'string' ? quiz.duration : `${quiz.duration} min`;
+    } else if (quiz.durationMinutes) {
+      duration = `${quiz.durationMinutes} min`;
+    }
 
-  // Filter quizzes based on selected category
-  const filteredQuizzes = useMemo(() => {
-    return quizData.filter(quiz => quiz.category === selectedCategory);
-  }, [selectedCategory]);
+    // Format question count - handle if questions is an array of objects
+    let questions = '10';
+    if (quiz.questionCount) {
+      questions = String(quiz.questionCount);
+    } else if (quiz.questions) {
+      if (Array.isArray(quiz.questions)) {
+        questions = String(quiz.questions.length);
+      } else if (typeof quiz.questions === 'number') {
+        questions = String(quiz.questions);
+      } else if (typeof quiz.questions === 'string') {
+        questions = quiz.questions;
+      }
+    }
 
-  // Get counts for each category
+    // Format tags - ensure it's always an array of strings
+    let tags = [];
+    if (quiz.tags) {
+      if (Array.isArray(quiz.tags)) {
+        tags = quiz.tags.map(tag => typeof tag === 'string' ? tag : tag.name || tag.label || 'Tag');
+      }
+    } else if (quiz.labels) {
+      if (Array.isArray(quiz.labels)) {
+        tags = quiz.labels.map(label => typeof label === 'string' ? label : label.name || label.label || 'Tag');
+      }
+    }
+
+    return {
+      id: quiz.id || quiz._id || String(Math.random()),
+      title: quiz.title || quiz.label || quiz.quizLabel || 'Quiz',
+      subject: quiz.subject || quiz.quizSubject || 'General',
+      startTime: quiz.startTime || quiz.slotDisplay || quiz.scheduledAt || 'N/A',
+      difficulty: typeof quiz.difficulty === 'string' ? quiz.difficulty : 'intermediate',
+      questions: questions,
+      duration: duration,
+      timeLeft: quiz.timeLeft || quiz.timeRemaining || '0 min',
+      isLive: category === 'live',
+      category: category,
+      tags: tags,
+      prize: quiz.prize || quiz.hasPrize || false,
+      startedAgo: quiz.startedAgo || quiz.timeAgo || (category === 'upcoming' ? 'Upcoming' : 'Past'),
+      score: quiz.score || quiz.scoreDisplay || '',
+    };
+  };
+
+  // Fetch quizzes based on selected category and language
+  useEffect(() => {
+    const fetchQuizzes = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        let language = selectedLanguage === 'ALL' ? undefined : selectedLanguage.toLowerCase();
+        let fetchedQuizzes = [];
+
+        switch (selectedCategory) {
+          case 'live':
+            fetchedQuizzes = await fetchLiveQuizzesOnly({ language });
+            fetchedQuizzes = fetchedQuizzes.map(quiz => transformQuizData(quiz, 'live'));
+            break;
+
+          case 'upcoming':
+            fetchedQuizzes = await fetchUpcomingQuizzes({ language });
+            fetchedQuizzes = fetchedQuizzes.map(quiz => transformQuizData(quiz, 'upcoming'));
+            break;
+
+          case 'attempted':
+            if (uid) {
+              fetchedQuizzes = await fetchUserQuizAttempts(uid);
+              fetchedQuizzes = fetchedQuizzes.map(quiz => transformQuizData(quiz, 'attempted'));
+            }
+            break;
+
+          default:
+            fetchedQuizzes = [];
+        }
+
+        setQuizData(fetchedQuizzes);
+      } catch (err) {
+        console.error('Error fetching quizzes:', err);
+        setError(err.message || 'Failed to fetch quizzes');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuizzes();
+  }, [selectedCategory, selectedLanguage, uid]);
+
+  // No need to filter since we're already fetching by category
+  const filteredQuizzes = quizData;
+
+  // Get counts for each category (we'll just use the current count for the selected category)
   const categoryCounts = useMemo(() => {
     return {
-      live: quizData.filter(q => q.category === 'live').length,
-      upcoming: quizData.filter(q => q.category === 'upcoming').length,
-      attempted: quizData.filter(q => q.category === 'attempted').length,
+      live: selectedCategory === 'live' ? quizData.length : 0,
+      upcoming: selectedCategory === 'upcoming' ? quizData.length : 0,
+      attempted: selectedCategory === 'attempted' ? quizData.length : 0,
     };
-  }, []);
+  }, [selectedCategory, quizData]);
 
   const categoryTabs = ['LIVE', 'UPCOMING', 'ATTEMPTED'];
 
@@ -280,22 +179,26 @@ const QuizArenaScreen = () => {
       <View style={styles.languageSection}>
         <Text style={styles.languageLabel}>LANGUAGE</Text>
         <View style={styles.languageTabs}>
-          {['ALL LANGUAGES', 'ENGLISH', 'HINDI'].map((lang) => (
+          {[
+            { label: 'ALL LANGUAGES', value: 'ALL' },
+            { label: 'ENGLISH', value: 'ENGLISH' },
+            { label: 'HINDI', value: 'HINDI' }
+          ].map((lang) => (
             <TouchableOpacity
-              key={lang}
+              key={lang.value}
               style={[
                 styles.languageTab,
-                selectedLanguage === lang && styles.languageTabActive,
+                selectedLanguage === lang.value && styles.languageTabActive,
               ]}
-              onPress={() => setSelectedLanguage(lang)}
+              onPress={() => setSelectedLanguage(lang.value)}
             >
               <Text
                 style={[
                   styles.languageTabText,
-                  selectedLanguage === lang && styles.languageTabTextActive,
+                  selectedLanguage === lang.value && styles.languageTabTextActive,
                 ]}
               >
-                {lang}
+                {lang.label}
               </Text>
             </TouchableOpacity>
           ))}
@@ -321,16 +224,52 @@ const QuizArenaScreen = () => {
         ))}
       </View>
 
+      {/* Loading State */}
+      {loading && (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#DC2626" />
+          <Text style={styles.loadingText}>Loading quizzes...</Text>
+        </View>
+      )}
+
+      {/* Error State */}
+      {error && !loading && (
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>⚠️ {error}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => {
+              // Trigger refetch by toggling state
+              setSelectedCategory(selectedCategory);
+            }}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && filteredQuizzes.length === 0 && (
+        <View style={styles.centerContainer}>
+          <Text style={styles.emptyText}>No {selectedCategory} quizzes available</Text>
+          {selectedCategory === 'attempted' && !uid && (
+            <Text style={styles.emptySubtext}>Please log in to see your attempted quizzes</Text>
+          )}
+        </View>
+      )}
+
       {/* Quiz List */}
-      <FlatList
-        data={filteredQuizzes}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <QuizCard quiz={item} onStartQuiz={handleStartQuiz} />
-        )}
-        contentContainerStyle={styles.quizList}
-        showsVerticalScrollIndicator={false}
-      />
+      {!loading && !error && filteredQuizzes.length > 0 && (
+        <FlatList
+          data={filteredQuizzes}
+          keyExtractor={(item) => item.id || item._id || String(Math.random())}
+          renderItem={({ item }) => (
+            <QuizCard quiz={item} onStartQuiz={handleStartQuiz} />
+          )}
+          contentContainerStyle={styles.quizList}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       {/* Floating Filter Button */}
       <FloatingFilter />
@@ -445,6 +384,47 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 12,
     paddingBottom: 20,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#DC2626',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    backgroundColor: '#DC2626',
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 13,
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });
 

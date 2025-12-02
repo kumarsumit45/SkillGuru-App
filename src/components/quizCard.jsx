@@ -34,28 +34,30 @@ const QuizCard = ({ quiz, onStartQuiz }) => {
       </View>
 
       {/* Quiz Title */}
-      <Text style={styles.quizTitle}>{quiz.title}</Text>
+      <Text style={styles.quizTitle}>{quiz.title || 'Quiz'}</Text>
 
       {/* Subject Tags */}
-      <View style={styles.tagContainer}>
-        {quiz.tags.map((tag, index) => (
-          <View key={index} style={styles.tag}>
-            <Text style={styles.tagText}>{tag}</Text>
-          </View>
-        ))}
-      </View>
+      {quiz.tags && quiz.tags.length > 0 && (
+        <View style={styles.tagContainer}>
+          {quiz.tags.map((tag, index) => (
+            <View key={index} style={styles.tag}>
+              <Text style={styles.tagText}>{tag}</Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       {/* Quiz Details Section */}
       <View style={styles.detailsContainer}>
         <View style={styles.detailRow}>
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>SUBJECT</Text>
-            <Text style={styles.detailValue}>{quiz.subject}</Text>
+            <Text style={styles.detailValue}>{quiz.subject || 'General'}</Text>
           </View>
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>DIFFICULTY</Text>
             <Text style={[styles.detailValue, styles.difficultyText]}>
-              {quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)}
+              {quiz.difficulty ? quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1) : 'Intermediate'}
             </Text>
           </View>
         </View>
@@ -68,23 +70,23 @@ const QuizCard = ({ quiz, onStartQuiz }) => {
            quiz.category === 'upcoming' ? 'STARTS AT' :
            'ATTEMPTED ON'}
         </Text>
-        <Text style={styles.timeValue}>{quiz.startTime}</Text>
+        <Text style={styles.timeValue}>{quiz.startTime || 'N/A'}</Text>
       </View>
 
       {/* Quiz Stats */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>QUESTIONS</Text>
-          <Text style={styles.statValue}>{quiz.questions}</Text>
+          <Text style={styles.statValue}>{quiz.questions || '10'}</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>DURATION</Text>
-          <Text style={styles.statValue}>{quiz.duration}</Text>
+          <Text style={styles.statValue}>{quiz.duration || '30 min'}</Text>
         </View>
         {quiz.category === 'live' && (
           <View style={styles.statItem}>
             <Text style={styles.statLabel}>TIME LEFT</Text>
-            <Text style={styles.statValue}>{quiz.timeLeft}</Text>
+            <Text style={styles.statValue}>{quiz.timeLeft || '0 min'}</Text>
           </View>
         )}
         {quiz.category === 'attempted' && quiz.score && (
@@ -97,7 +99,7 @@ const QuizCard = ({ quiz, onStartQuiz }) => {
 
       {/* Footer */}
       <View style={styles.cardFooter}>
-        <Text style={styles.startedAgo}>{quiz.startedAgo}</Text>
+        <Text style={styles.startedAgo}>{quiz.startedAgo || ''}</Text>
         <TouchableOpacity
           style={[
             styles.startButton,
