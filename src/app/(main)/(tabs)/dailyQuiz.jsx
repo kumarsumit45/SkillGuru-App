@@ -14,102 +14,115 @@ import QuizCard from "../../../components/quizCard";
 import { fetchLiveQuizzesOnly, fetchUpcomingQuizzes, fetchUserQuizAttempts } from '../../../api/liveQuizApi';
 import useAuthStore from '../../../store/authStore';
 
+// Transform API response to match QuizCard expected format
+const transformQuizData = (quiz, category) => {
+  // Format duration
+  let duration = '30 min';
+  if (quiz.duration) {
+    duration = typeof quiz.duration === 'string' ? quiz.duration : `${quiz.duration} min`;
+  } else if (quiz.durationMinutes) {
+    duration = `${quiz.durationMinutes} min`;
+  }
+
+  // Format question count - handle if questions is an array of objects
+  let questions = '10';
+  if (quiz.questionCount) {
+    questions = String(quiz.questionCount);
+  } else if (quiz.questions) {
+    if (Array.isArray(quiz.questions)) {
+      questions = String(quiz.questions.length);
+    } else if (typeof quiz.questions === 'number') {
+      questions = String(quiz.questions);
+    } else if (typeof quiz.questions === 'string') {
+      questions = quiz.questions;
+    }
+  }
+
+  // Format tags - ensure it's always an array of strings
+  let tags = [];
+  if (quiz.tags) {
+    if (Array.isArray(quiz.tags)) {
+      tags = quiz.tags.map(tag => typeof tag === 'string' ? tag : tag.name || tag.label || 'Tag');
+    }
+  } else if (quiz.labels) {
+    if (Array.isArray(quiz.labels)) {
+      tags = quiz.labels.map(label => typeof label === 'string' ? label : label.name || label.label || 'Tag');
+    }
+  }
+
+  return {
+    id: quiz.id || quiz._id || String(Math.random()),
+    title: quiz.title || quiz.label || quiz.quizLabel || 'Quiz',
+    subject: quiz.subject || quiz.quizSubject || 'General',
+    startTime: quiz.startTime || quiz.slotDisplay || quiz.scheduledAt || 'N/A',
+    difficulty: typeof quiz.difficulty === 'string' ? quiz.difficulty : 'intermediate',
+    questions: questions,
+    duration: duration,
+    timeLeft: quiz.timeLeft || quiz.timeRemaining || '0 min',
+    isLive: category === 'live',
+    category: category,
+    tags: tags,
+    prize: quiz.prize || quiz.hasPrize || false,
+    startedAgo: quiz.startedAgo || quiz.timeAgo || (category === 'upcoming' ? 'Upcoming' : 'Past'),
+    score: quiz.score || quiz.scoreDisplay || '',
+  };
+};
+
 const QuizArenaScreen = () => {
   const router = useRouter();
   const { uid } = useAuthStore();
   const [selectedLanguage, setSelectedLanguage] = useState('ALL');
   const [selectedCategory, setSelectedCategory] = useState('live');
-  const [quizData, setQuizData] = useState([]);
+  const [allQuizzes, setAllQuizzes] = useState({
+    live: [],
+    upcoming: [],
+    attempted: []
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Transform API response to match QuizCard expected format
-  const transformQuizData = (quiz, category) => {
-    // Format duration
-    let duration = '30 min';
-    if (quiz.duration) {
-      duration = typeof quiz.duration === 'string' ? quiz.duration : `${quiz.duration} min`;
-    } else if (quiz.durationMinutes) {
-      duration = `${quiz.durationMinutes} min`;
-    }
-
-    // Format question count - handle if questions is an array of objects
-    let questions = '10';
-    if (quiz.questionCount) {
-      questions = String(quiz.questionCount);
-    } else if (quiz.questions) {
-      if (Array.isArray(quiz.questions)) {
-        questions = String(quiz.questions.length);
-      } else if (typeof quiz.questions === 'number') {
-        questions = String(quiz.questions);
-      } else if (typeof quiz.questions === 'string') {
-        questions = quiz.questions;
-      }
-    }
-
-    // Format tags - ensure it's always an array of strings
-    let tags = [];
-    if (quiz.tags) {
-      if (Array.isArray(quiz.tags)) {
-        tags = quiz.tags.map(tag => typeof tag === 'string' ? tag : tag.name || tag.label || 'Tag');
-      }
-    } else if (quiz.labels) {
-      if (Array.isArray(quiz.labels)) {
-        tags = quiz.labels.map(label => typeof label === 'string' ? label : label.name || label.label || 'Tag');
-      }
-    }
-
-    return {
-      id: quiz.id || quiz._id || String(Math.random()),
-      title: quiz.title || quiz.label || quiz.quizLabel || 'Quiz',
-      subject: quiz.subject || quiz.quizSubject || 'General',
-      startTime: quiz.startTime || quiz.slotDisplay || quiz.scheduledAt || 'N/A',
-      difficulty: typeof quiz.difficulty === 'string' ? quiz.difficulty : 'intermediate',
-      questions: questions,
-      duration: duration,
-      timeLeft: quiz.timeLeft || quiz.timeRemaining || '0 min',
-      isLive: category === 'live',
-      category: category,
-      tags: tags,
-      prize: quiz.prize || quiz.hasPrize || false,
-      startedAgo: quiz.startedAgo || quiz.timeAgo || (category === 'upcoming' ? 'Upcoming' : 'Past'),
-      score: quiz.score || quiz.scoreDisplay || '',
-    };
-  };
-
-  // Fetch quizzes based on selected category and language
+  // Fetch all quizzes when language changes
   useEffect(() => {
-    const fetchQuizzes = async () => {
+    const fetchAllQuizzes = async () => {
       setLoading(true);
       setError(null);
 
       try {
         let language = selectedLanguage === 'ALL' ? undefined : selectedLanguage.toLowerCase();
-        let fetchedQuizzes = [];
 
-        switch (selectedCategory) {
-          case 'live':
-            fetchedQuizzes = await fetchLiveQuizzesOnly({ language });
-            fetchedQuizzes = fetchedQuizzes.map(quiz => transformQuizData(quiz, 'live'));
-            break;
+        // Fetch all three categories in parallel
+        const [liveData, upcomingData, attemptedData] = await Promise.all([
+          fetchLiveQuizzesOnly({ language }).catch(err => {
+            console.error('Error fetching live quizzes:', err);
+            return [];
+          }),
+          fetchUpcomingQuizzes({ language }).catch(err => {
+            console.error('Error fetching upcoming quizzes:', err);
+            return [];
+          }),
+          uid ? fetchUserQuizAttempts(uid).catch(err => {
+            console.error('Error fetching attempted quizzes:', err);
+            return [];
+          }) : Promise.resolve([])
+        ]);
 
-          case 'upcoming':
-            fetchedQuizzes = await fetchUpcomingQuizzes({ language });
-            fetchedQuizzes = fetchedQuizzes.map(quiz => transformQuizData(quiz, 'upcoming'));
-            break;
+        // Transform data for each category
+        const transformedLive = liveData.map(quiz => transformQuizData(quiz, 'live'));
+        const transformedUpcoming = upcomingData.map(quiz => transformQuizData(quiz, 'upcoming'));
+        const transformedAttempted = attemptedData.map(quiz => transformQuizData(quiz, 'attempted'));
 
-          case 'attempted':
-            if (uid) {
-              fetchedQuizzes = await fetchUserQuizAttempts(uid);
-              fetchedQuizzes = fetchedQuizzes.map(quiz => transformQuizData(quiz, 'attempted'));
-            }
-            break;
+        setAllQuizzes({
+          live: transformedLive,
+          upcoming: transformedUpcoming,
+          attempted: transformedAttempted
+        });
 
-          default:
-            fetchedQuizzes = [];
-        }
-
-        setQuizData(fetchedQuizzes);
+        // Log counts for debugging
+        console.log('Quiz counts:', {
+          live: transformedLive.length,
+          upcoming: transformedUpcoming.length,
+          attempted: transformedAttempted.length
+        });
       } catch (err) {
         console.error('Error fetching quizzes:', err);
         setError(err.message || 'Failed to fetch quizzes');
@@ -118,29 +131,32 @@ const QuizArenaScreen = () => {
       }
     };
 
-    fetchQuizzes();
-  }, [selectedCategory, selectedLanguage, uid]);
+    fetchAllQuizzes();
+  }, [selectedLanguage, uid]);
 
-  // No need to filter since we're already fetching by category
-  const filteredQuizzes = quizData;
+  // Get quizzes for the selected category
+  const filteredQuizzes = allQuizzes[selectedCategory] || [];
 
-  // Get counts for each category (we'll just use the current count for the selected category)
+  // Get counts for each category - now showing all counts regardless of selection
   const categoryCounts = useMemo(() => {
-    return {
-      live: selectedCategory === 'live' ? quizData.length : 0,
-      upcoming: selectedCategory === 'upcoming' ? quizData.length : 0,
-      attempted: selectedCategory === 'attempted' ? quizData.length : 0,
+    const counts = {
+      live: allQuizzes.live?.length || 0,
+      upcoming: allQuizzes.upcoming?.length || 0,
+      attempted: allQuizzes.attempted?.length || 0,
     };
-  }, [selectedCategory, quizData]);
+    console.log('Displaying category counts:', counts);
+    return counts;
+  }, [allQuizzes]);
 
   const categoryTabs = ['LIVE', 'UPCOMING', 'ATTEMPTED'];
 
   const handleStartQuiz = (quizId) => {
     console.log('Start Quiz:', quizId);
 
-    const selectedQuiz = quizData.find(q => q.id === quizId);
+    // Find the quiz in the current category
+    const selectedQuiz = filteredQuizzes.find(q => q.id === quizId);
     if (selectedQuiz) {
-   
+
       if (selectedQuiz.category === 'live' || selectedQuiz.category === 'upcoming') {
         // Navigate to QuizDetails screen with quiz data
         router.push({
@@ -150,7 +166,7 @@ const QuizArenaScreen = () => {
           }
         });
       } else if (selectedQuiz.category === 'attempted') {
-      
+
         console.log('View Results for quiz:', quizId);
         // Navigate to results page when ready
       }
@@ -207,21 +223,35 @@ const QuizArenaScreen = () => {
 
       {/* Category Tabs */}
       <View style={styles.categoryTabs}>
-        {categoryTabs.map((category) => (
-          <TouchableOpacity
-            key={category}
-            style={[
-              styles.categoryTab,
-              selectedCategory === category.toLowerCase() && styles.categoryTabActive,
-            ]}
-            onPress={() => setSelectedCategory(category.toLowerCase())}
-          >
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryBadgeText}>{category}</Text>
-              <Text style={styles.categoryCount}>({categoryCounts[category.toLowerCase()]})</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+        {categoryTabs.map((category) => {
+          const categoryKey = category.toLowerCase();
+          const count = categoryCounts[categoryKey] || 0;
+          return (
+            <TouchableOpacity
+              key={category}
+              style={[
+                styles.categoryTab,
+                selectedCategory === categoryKey && styles.categoryTabActive,
+              ]}
+              onPress={() => setSelectedCategory(categoryKey)}
+            >
+              <View style={styles.categoryBadge}>
+                <Text style={[
+                  styles.categoryBadgeText,
+                  selectedCategory === categoryKey && styles.categoryBadgeTextActive
+                ]}>
+                  {category}
+                </Text>
+                <Text style={[
+                  styles.categoryCount,
+                  selectedCategory === categoryKey && styles.categoryCountActive
+                ]}>
+                  ({count})
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Loading State */}
@@ -371,13 +401,20 @@ const styles = StyleSheet.create({
   categoryBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#DC2626',
+    color: '#6B7280',
     letterSpacing: 0.5,
+  },
+  categoryBadgeTextActive: {
+    color: '#DC2626',
   },
   categoryCount: {
     fontSize: 10,
     color: '#9CA3AF',
     marginTop: 2,
+  },
+  categoryCountActive: {
+    color: '#DC2626',
+    fontWeight: '600',
   },
   quizList: {
     paddingHorizontal: 16,
