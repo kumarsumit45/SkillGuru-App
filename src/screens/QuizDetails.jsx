@@ -35,8 +35,13 @@ const QuizDetails = () => {
 
   const handleStartQuiz = () => {
     console.log('Starting quiz:', quiz.id);
-    // Navigate to quiz screen
-    // router.push(`/quiz/${quiz.id}`);
+    // Navigate to quiz live page
+    router.push({
+      pathname: '/QuizLivePage',
+      params: {
+        quiz: JSON.stringify(quiz),
+      },
+    });
   };
 
   const handleBackToList = () => {
