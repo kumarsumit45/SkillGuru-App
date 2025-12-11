@@ -83,7 +83,8 @@ const QuizLivePage = () => {
       }
 
       if (questionCount > 0) {
-        durationSeconds = questionCount * data.quiz_metadata.time_per_question;
+        // Subtract 15 seconds from each question's time (75 - 15 = 60 seconds per question)
+        durationSeconds = questionCount * (data.quiz_metadata.time_per_question - 15);
       }
     }
     // Fallback to params

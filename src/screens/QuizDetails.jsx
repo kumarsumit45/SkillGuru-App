@@ -116,7 +116,8 @@ const QuizDetails = () => {
   }
   // Calculate from metadata
   else if (quizData?.quiz_metadata?.time_per_question && questionCount > 0) {
-    const totalSeconds = questionCount * quizData.quiz_metadata.time_per_question;
+    // Subtract 15 seconds from each question's time (75 - 15 = 60 seconds per question)
+    const totalSeconds = questionCount * (quizData.quiz_metadata.time_per_question - 15);
     const totalMinutes = Math.ceil(totalSeconds / 60);
     duration = `${totalMinutes} min`;
   }
@@ -124,9 +125,9 @@ const QuizDetails = () => {
   else if (quiz.duration) {
     duration = quiz.duration;
   }
-  // Last resort: calculate from question count
+  // Last resort: calculate from question count (60 seconds per question)
   else if (questionCount > 0) {
-    const totalMinutes = Math.ceil((questionCount * 75) / 60);
+    const totalMinutes = Math.ceil((questionCount * 60) / 60);
     duration = `${totalMinutes} min`;
   }
 
