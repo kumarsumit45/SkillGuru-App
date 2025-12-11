@@ -58,8 +58,11 @@ const QuizDetails = () => {
     );
   }
 
-  // Extract quiz topic from title (e.g., "JEE Main • Optics" -> "Optics")
-  const quizTopic = quiz.title.split('•')[1]?.trim() || quiz.title;
+  // Get subject from API data (quiz_metadata.subject) or extract from title as fallback
+  const quizTopic = quizData?.quiz_metadata?.subject ||
+                    quiz?.quiz_metadata?.subject ||
+                    quiz.title.split('•')[1]?.trim() ||
+                    quiz.title;
   const quizCategory = quiz.title.split('•')[0]?.trim() || quiz.subject;
 
   // Get language from API data or quiz params, with fallback to "English"
@@ -179,7 +182,7 @@ const QuizDetails = () => {
 
           <View style={styles.divider} />
 
-          <Text style={styles.topicTitle}>{quizTopic}</Text>
+         <Text style={styles.topicTitle}>{quizTopic}</Text>
 
           <Text style={styles.description}>
             You will have exactly {duration} inside the quiz room. Answers are locked once submitted.{'\n'}
