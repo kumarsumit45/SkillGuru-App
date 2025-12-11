@@ -23,10 +23,16 @@ const QuizLivePage = () => {
   const [timeLeft, setTimeLeft] = useState(0); // Quiz duration timer (time limit to complete)
 
   useEffect(() => {
-    if (quiz?.id) {
-      loadQuizData();
-    }
-  }, [quiz?.id]);
+  if (quiz?.id) {
+    // Reset all state when starting a new quiz
+    setCurrentQuestionIndex(0);
+    setSelectedAnswers({});
+    setTimeLeft(0);
+    
+    // Load the new quiz data
+    loadQuizData();
+  }
+}, [quiz?.id]);
 
   useEffect(() => {
     // Timer countdown
@@ -96,7 +102,12 @@ const QuizLivePage = () => {
     }
   };
 
-  const handleBack = () => {
+    const handleBack = () => {
+    // Reset state before navigating back
+    setCurrentQuestionIndex(0);
+    setSelectedAnswers({});
+    setTimeLeft(0);
+    
     router.back();
   };
 

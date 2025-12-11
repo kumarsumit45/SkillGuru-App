@@ -36,31 +36,73 @@ const QuizResultsPage = () => {
   let incorrectCount = 0;
   let unattemptedCount = 0;
 
+  // const questionResults = questions.map((question, index) => {
+  //   const userAnswer = userAnswers[index];
+  //   const correctAnswer = question.correct_answer || question.correctAnswer;
+
+  //   let status = 'unattempted';
+  //   if (userAnswer) {
+  //     if (userAnswer === correctAnswer) {
+  //       status = 'correct';
+  //       correctCount++;
+  //     } else {
+  //       status = 'incorrect';
+  //       incorrectCount++;
+  //     }
+  //   } else {
+  //     unattemptedCount++;
+  //   }
+
+  //   return {
+  //     ...question,
+  //     userAnswer,
+  //     correctAnswer,
+  //     status,
+  //     index: index + 1,
+  //   };
+  // });
+
   const questionResults = questions.map((question, index) => {
-    const userAnswer = userAnswers[index];
-    const correctAnswer = question.correct_answer || question.correctAnswer;
-
-    let status = 'unattempted';
-    if (userAnswer) {
-      if (userAnswer === correctAnswer) {
-        status = 'correct';
-        correctCount++;
-      } else {
-        status = 'incorrect';
-        incorrectCount++;
-      }
-    } else {
-      unattemptedCount++;
+  const userAnswer = userAnswers[index];
+  let correctAnswer = question.correct_answer || question.correctAnswer;
+  
+  // Convert correctAnswer from full text to option letter (A, B, C, D)
+  if (correctAnswer && question.options) {
+    const correctIndex = question.options.findIndex(option => {
+      const optionText = typeof option === 'string' ? option : option.text;
+      return optionText === correctAnswer;
+    });
+    
+    if (correctIndex !== -1) {
+      correctAnswer = String.fromCharCode(65 + correctIndex); // 0->A, 1->B, 2->C, 3->D
     }
+  }
+  
+  // Normalize both answers for comparison
+  const normalizedUserAnswer = userAnswer ? String(userAnswer).trim().toUpperCase() : null;
+  const normalizedCorrectAnswer = correctAnswer ? String(correctAnswer).trim().toUpperCase() : null;
 
-    return {
-      ...question,
-      userAnswer,
-      correctAnswer,
-      status,
-      index: index + 1,
-    };
-  });
+  let status = 'unattempted';
+  if (normalizedUserAnswer) {
+    if (normalizedUserAnswer === normalizedCorrectAnswer) {
+      status = 'correct';
+      correctCount++;
+    } else {
+      status = 'incorrect';
+      incorrectCount++;
+    }
+  } else {
+    unattemptedCount++;
+  }
+
+  return {
+    ...question,
+    userAnswer,
+    correctAnswer: normalizedCorrectAnswer,
+    status,
+    index: index + 1,
+  };
+});
 
   // Calculate score and percentage
   const score = correctCount;
