@@ -13,13 +13,13 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
-const FloatingFilter = () => {
+const FloatingFilter = ({ onApplyFilters }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState(['classes']);
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedClasses, setSelectedClasses] = useState([]);
   const [selectedSSCExams, setSelectedSSCExams] = useState([]);
   const [selectedPopularExams, setSelectedPopularExams] = useState([]);
-  const [expandedSections, setExpandedSections] = useState(['classes']);
+  const [expandedSections, setExpandedSections] = useState([]);
 
   const categories = [
     { id: 'recommended', label: 'Recommended for you', icon: 'star' },
@@ -85,6 +85,16 @@ const FloatingFilter = () => {
     setSelectedClasses([]);
     setSelectedSSCExams([]);
     setSelectedPopularExams([]);
+
+    // Notify parent component to clear filters
+    if (onApplyFilters) {
+      onApplyFilters({
+        selectedCategories: [],
+        selectedClasses: [],
+        selectedSSCExams: [],
+        selectedPopularExams: []
+      });
+    }
   };
 
   const getFilterSummary = () => {
@@ -270,7 +280,17 @@ const FloatingFilter = () => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.applyButton}
-                onPress={() => setIsOpen(false)}
+                onPress={() => {
+                  setIsOpen(false);
+                  if (onApplyFilters) {
+                    onApplyFilters({
+                      selectedCategories,
+                      selectedClasses,
+                      selectedSSCExams,
+                      selectedPopularExams
+                    });
+                  }
+                }}
               >
                 <Text style={styles.applyButtonText}>APPLY FILTERS</Text>
               </TouchableOpacity>

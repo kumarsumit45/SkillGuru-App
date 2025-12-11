@@ -139,6 +139,12 @@ const QuizArenaScreen = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [appliedFilters, setAppliedFilters] = useState({
+    selectedCategories: [],
+    selectedClasses: [],
+    selectedSSCExams: [],
+    selectedPopularExams: []
+  });
 
   // Fetch all quizzes when language changes
   useEffect(() => {
@@ -193,21 +199,93 @@ const QuizArenaScreen = () => {
     fetchAllQuizzes();
   }, [selectedLanguage, uid]);
 
-  // Get quizzes for the selected category
-  const filteredQuizzes = allQuizzes[selectedCategory] || [];
+  // Helper function to check if text contains exact match with word boundaries
+  const matchesExactly = (text, searchTerm) => {
+    if (!text) return false;
+    // Create a regex that matches the exact term with word boundaries
+    // This prevents "Class 1" from matching "Class 10", "Class 11", etc.
+    const regex = new RegExp(`\\b${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    return regex.test(text);
+  };
 
-  // Get counts for each category - now showing all counts regardless of selection
+  // Helper function to apply filters to a quiz array
+  const applyFiltersToQuizzes = (quizzes) => {
+    // If no filters are applied, return all quizzes
+    const hasFilters = appliedFilters.selectedCategories.length > 0 ||
+                       appliedFilters.selectedClasses.length > 0 ||
+                       appliedFilters.selectedSSCExams.length > 0 ||
+                       appliedFilters.selectedPopularExams.length > 0;
+
+    if (!hasFilters) {
+      return quizzes;
+    }
+
+    return quizzes.filter(quiz => {
+      // Extract the exam/class category from the quiz title (e.g., "JEE Main • Optics" -> "JEE Main")
+      const quizCategory = quiz.title.split('•')[0]?.trim() || '';
+
+      // Check if "Recommended" is selected - show all quizzes
+      if (appliedFilters.selectedCategories.includes('recommended')) {
+        return true;
+      }
+
+      // Check if the quiz matches any selected classes
+      if (appliedFilters.selectedClasses.length > 0) {
+        const matchesClass = appliedFilters.selectedClasses.some(cls =>
+          matchesExactly(quizCategory, cls) ||
+          matchesExactly(quiz.subject, cls) ||
+          matchesExactly(quiz.title, cls)
+        );
+        if (matchesClass) return true;
+      }
+
+      // Check if the quiz matches any selected SSC exams
+      if (appliedFilters.selectedSSCExams.length > 0) {
+        const matchesSSC = appliedFilters.selectedSSCExams.some(exam =>
+          matchesExactly(quizCategory, exam) ||
+          matchesExactly(quiz.subject, exam) ||
+          matchesExactly(quiz.title, exam)
+        );
+        if (matchesSSC) return true;
+      }
+
+      // Check if the quiz matches any selected popular exams
+      if (appliedFilters.selectedPopularExams.length > 0) {
+        const matchesPopular = appliedFilters.selectedPopularExams.some(exam =>
+          matchesExactly(quizCategory, exam) ||
+          matchesExactly(quiz.subject, exam) ||
+          matchesExactly(quiz.title, exam)
+        );
+        if (matchesPopular) return true;
+      }
+
+      return false;
+    });
+  };
+
+  // Filter quizzes based on selected filters for the current category
+  const filteredQuizzes = useMemo(() => {
+    let quizzes = allQuizzes[selectedCategory] || [];
+    return applyFiltersToQuizzes(quizzes);
+  }, [allQuizzes, selectedCategory, appliedFilters]);
+
+  // Get counts for each category based on applied filters
   const categoryCounts = useMemo(() => {
     const counts = {
-      live: allQuizzes.live?.length || 0,
-      upcoming: allQuizzes.upcoming?.length || 0,
-      attempted: allQuizzes.attempted?.length || 0,
+      live: applyFiltersToQuizzes(allQuizzes.live || []).length,
+      upcoming: applyFiltersToQuizzes(allQuizzes.upcoming || []).length,
+      attempted: applyFiltersToQuizzes(allQuizzes.attempted || []).length,
     };
-    console.log('Displaying category counts:', counts);
+    console.log('Displaying category counts (filtered):', counts);
     return counts;
-  }, [allQuizzes]);
+  }, [allQuizzes, appliedFilters]);
 
   const categoryTabs = ['LIVE', 'UPCOMING', 'ATTEMPTED'];
+
+  const handleApplyFilters = (filters) => {
+    console.log('Applying filters:', filters);
+    setAppliedFilters(filters);
+  };
 
   const handleStartQuiz = (quizId) => {
     console.log('Start Quiz:', quizId);
@@ -246,7 +324,12 @@ const QuizArenaScreen = () => {
       {/* Description Section */}
       <View style={styles.infoSection}>
         <Text style={styles.infoText}>
-          Showing recommended quizzes across all categories and ranked from most visited.
+          {appliedFilters.selectedCategories.length > 0 ||
+           appliedFilters.selectedClasses.length > 0 ||
+           appliedFilters.selectedSSCExams.length > 0 ||
+           appliedFilters.selectedPopularExams.length > 0
+            ? `Showing filtered quizzes based on your selection.`
+            : 'Showing recommended quizzes across all categories and ranked from most visited.'}
         </Text>
       </View>
 
@@ -361,7 +444,7 @@ const QuizArenaScreen = () => {
       )}
 
       {/* Floating Filter Button */}
-      <FloatingFilter />
+      <FloatingFilter onApplyFilters={handleApplyFilters} />
     </SafeAreaView>
   );
 };
