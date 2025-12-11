@@ -20,7 +20,7 @@ const QuizLivePage = () => {
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(0); // Quiz duration timer (time limit to complete)
 
   useEffect(() => {
     if (quiz?.id) {
@@ -44,16 +44,55 @@ const QuizLivePage = () => {
       const data = await fetchLiveQuizById(quiz.id);
       setQuizData(data);
 
-      // Parse duration and set timer (assuming duration is in format "15 min")
-      if (data?.duration || quiz?.duration) {
-        const durationStr = data?.duration || quiz?.duration;
-        const minutes = parseInt(durationStr.match(/\d+/)?.[0] || '15');
-        setTimeLeft(minutes * 60); // Convert to seconds
-      }
+      // Calculate quiz duration (time limit to complete the quiz)
+      calculateTimeFromDuration(data);
     } catch (error) {
       console.error('Failed to load quiz data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const calculateTimeFromDuration = (data) => {
+    let durationSeconds = null;
+
+    // Check for direct duration field
+    if (data?.duration) {
+      const match = data.duration.match(/\d+/);
+      if (match) {
+        durationSeconds = parseInt(match[0]) * 60; // Convert minutes to seconds
+      }
+    } else if (data?.durationMinutes) {
+      durationSeconds = data.durationMinutes * 60; // Convert minutes to seconds
+    }
+    // Calculate from metadata (most accurate for live quizzes)
+    else if (data?.quiz_metadata?.time_per_question) {
+      let questionCount = 0;
+      if (data.totalQuestions) {
+        questionCount = data.totalQuestions;
+      } else if (data.quiz_metadata?.total_questions) {
+        questionCount = data.quiz_metadata.total_questions;
+      } else if (Array.isArray(data.questions)) {
+        questionCount = data.questions.length;
+      }
+
+      if (questionCount > 0) {
+        durationSeconds = questionCount * data.quiz_metadata.time_per_question;
+      }
+    }
+    // Fallback to params
+    else if (quiz?.duration) {
+      const match = quiz.duration.match(/\d+/);
+      if (match) {
+        durationSeconds = parseInt(match[0]) * 60; // Convert minutes to seconds
+      }
+    }
+
+    if (durationSeconds) {
+      setTimeLeft(durationSeconds);
+    } else {
+      // Ultimate fallback: 30 minutes
+      setTimeLeft(30 * 60);
     }
   };
 
@@ -119,9 +158,13 @@ const QuizLivePage = () => {
   const currentQuestion = quizData?.questions?.[currentQuestionIndex];
   const totalQuestions = quizData?.questions?.length || 0;
   const quizCategory = quiz.title.split('•')[0]?.trim() || quiz.subject;
-  const language = quiz.tags?.find(tag =>
-    ['Hindi', 'English'].includes(tag)
-  ) || 'English';
+
+  // Get language from API data or quiz params, with fallback to "English"
+  const language = quizData?.language ||
+                   quizData?.quiz_metadata?.language ||
+                   quiz.language ||
+                   quiz.quiz_metadata?.language ||
+                   'English';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -142,19 +185,14 @@ const QuizLivePage = () => {
 
           {/* Tags: Language and Time */}
           <View style={styles.tagsContainer}>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>{language}</Text>
+            <View style={styles.languageTag}>
+              <Text style={styles.languageTagText}>{language}</Text>
             </View>
             <View style={styles.tag}>
               <Text style={styles.tagText}>{quiz.startTime}</Text>
             </View>
           </View>
 
-          {/* Sponsor/Partner Logo */}
-          <View style={styles.sponsorContainer}>
-            <Text style={styles.sponsorArrow}>▶</Text>
-            <Text style={styles.sponsorText}>accenture</Text>
-          </View>
 
           {/* Finish Test Button */}
           <TouchableOpacity
@@ -173,7 +211,7 @@ const QuizLivePage = () => {
               </Text>
             </View>
             <View style={styles.timerContainer}>
-              <Text style={styles.timerLabel}>TIME LEFT</Text>
+              <Text style={styles.timerLabel}>TIME LIMIT</Text>
               <Text style={styles.timerValue}>{formatTime(timeLeft)}</Text>
             </View>
           </View>
@@ -360,6 +398,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     marginBottom: 16,
+  },
+  languageTag: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+  },
+  languageTagText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1D4ED8',
   },
   tag: {
     backgroundColor: '#F3F4F6',

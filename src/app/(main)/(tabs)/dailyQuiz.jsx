@@ -16,26 +16,81 @@ import useAuthStore from '../../../store/authStore';
 
 // Transform API response to match QuizCard expected format
 const transformQuizData = (quiz, category) => {
-  // Format duration
-  let duration = '30 min';
+  // Format question count from API
+  let questions = 'N/A';
+  let questionCount = 0;
+
+  if (quiz.questionCount) {
+    questions = String(quiz.questionCount);
+    questionCount = quiz.questionCount;
+  } else if (quiz.totalQuestions !== undefined) {
+    questions = String(quiz.totalQuestions);
+    questionCount = quiz.totalQuestions;
+  } else if (quiz.quiz_metadata?.total_questions !== undefined) {
+    questions = String(quiz.quiz_metadata.total_questions);
+    questionCount = quiz.quiz_metadata.total_questions;
+  } else if (quiz.questions) {
+    if (Array.isArray(quiz.questions)) {
+      questions = String(quiz.questions.length);
+      questionCount = quiz.questions.length;
+    } else if (typeof quiz.questions === 'number') {
+      questions = String(quiz.questions);
+      questionCount = quiz.questions;
+    } else if (typeof quiz.questions === 'string') {
+      questions = quiz.questions;
+      questionCount = parseInt(quiz.questions) || 0;
+    }
+  }
+
+  // Calculate duration from API metadata
+  let duration = 'N/A';
+
+  // First check if duration is directly provided
   if (quiz.duration) {
     duration = typeof quiz.duration === 'string' ? quiz.duration : `${quiz.duration} min`;
   } else if (quiz.durationMinutes) {
     duration = `${quiz.durationMinutes} min`;
   }
+  // Calculate from totalQuestions and time_per_question
+  else if (quiz.quiz_metadata?.time_per_question && questionCount > 0) {
+    const totalSeconds = questionCount * quiz.quiz_metadata.time_per_question;
+    const totalMinutes = Math.ceil(totalSeconds / 60);
+    duration = `${totalMinutes} min`;
+  }
+  // Fallback: calculate from totalQuestions assuming 75 seconds per question
+  else if (questionCount > 0) {
+    const totalMinutes = Math.ceil((questionCount * 75) / 60);
+    duration = `${totalMinutes} min`;
+  }
 
-  // Format question count - handle if questions is an array of objects
-  let questions = '10';
-  if (quiz.questionCount) {
-    questions = String(quiz.questionCount);
-  } else if (quiz.questions) {
-    if (Array.isArray(quiz.questions)) {
-      questions = String(quiz.questions.length);
-    } else if (typeof quiz.questions === 'number') {
-      questions = String(quiz.questions);
-    } else if (typeof quiz.questions === 'string') {
-      questions = quiz.questions;
+  // Calculate time left for live quizzes based on expiry time
+  let timeLeft = null;
+  if (category === 'live') {
+    try {
+      // Use expiresAtUtc for accurate calculation (UTC is more reliable)
+      const expiresAt = quiz.expiresAtUtc || quiz.expiresAtIst;
+
+      if (expiresAt) {
+        const expiryTime = new Date(expiresAt);
+        const now = new Date();
+        const diffMs = expiryTime - now;
+
+        if (diffMs > 0) {
+          const diffMinutes = Math.floor(diffMs / 60000);
+          timeLeft = `${diffMinutes} min`;
+        } else {
+          timeLeft = 'Ended';
+        }
+      } else {
+        // Fallback: check if timeLeft is directly provided
+        timeLeft = quiz.timeLeft || quiz.timeRemaining || null;
+      }
+    } catch (error) {
+      console.error('Error calculating time left:', error);
+      timeLeft = quiz.timeLeft || quiz.timeRemaining || null;
     }
+  } else {
+    timeLeft = quiz.timeLeft || quiz.timeRemaining || null;
   }
 
   // Format tags - ensure it's always an array of strings
@@ -50,6 +105,9 @@ const transformQuizData = (quiz, category) => {
     }
   }
 
+  // Extract language from API
+  const language = quiz.language || quiz.quiz_metadata?.language || null;
+
   return {
     id: quiz.id || quiz._id || String(Math.random()),
     title: quiz.title || quiz.label || quiz.quizLabel || 'Quiz',
@@ -58,10 +116,11 @@ const transformQuizData = (quiz, category) => {
     difficulty: typeof quiz.difficulty === 'string' ? quiz.difficulty : 'intermediate',
     questions: questions,
     duration: duration,
-    timeLeft: quiz.timeLeft || quiz.timeRemaining || '0 min',
+    timeLeft: timeLeft,
     isLive: category === 'live',
     category: category,
     tags: tags,
+    language: language,
     prize: quiz.prize || quiz.hasPrize || false,
     startedAgo: quiz.startedAgo || quiz.timeAgo || (category === 'upcoming' ? 'Upcoming' : 'Past'),
     score: quiz.score || quiz.scoreDisplay || '',

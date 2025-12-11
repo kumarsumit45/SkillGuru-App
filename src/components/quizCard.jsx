@@ -36,16 +36,19 @@ const QuizCard = ({ quiz, onStartQuiz }) => {
       {/* Quiz Title */}
       <Text style={styles.quizTitle}>{quiz.title || 'Quiz'}</Text>
 
-      {/* Subject Tags */}
-      {quiz.tags && quiz.tags.length > 0 && (
-        <View style={styles.tagContainer}>
-          {quiz.tags.map((tag, index) => (
-            <View key={index} style={styles.tag}>
-              <Text style={styles.tagText}>{tag}</Text>
-            </View>
-          ))}
-        </View>
-      )}
+      {/* Language and Subject Tags */}
+      <View style={styles.tagContainer}>
+        {quiz.language && (
+          <View style={styles.languageTag}>
+            <Text style={styles.languageTagText}>{quiz.language}</Text>
+          </View>
+        )}
+        {quiz.tags && quiz.tags.length > 0 && quiz.tags.map((tag, index) => (
+          <View key={index} style={styles.tag}>
+            <Text style={styles.tagText}>{tag}</Text>
+          </View>
+        ))}
+      </View>
 
       {/* Quiz Details Section */}
       <View style={styles.detailsContainer}>
@@ -77,16 +80,16 @@ const QuizCard = ({ quiz, onStartQuiz }) => {
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>QUESTIONS</Text>
-          <Text style={styles.statValue}>{quiz.questions || '10'}</Text>
+          <Text style={styles.statValue}>{quiz.questions || 'N/A'}</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>DURATION</Text>
-          <Text style={styles.statValue}>{quiz.duration || '30 min'}</Text>
+          <Text style={styles.statValue}>{quiz.duration || 'N/A'}</Text>
         </View>
         {quiz.category === 'live' && (
           <View style={styles.statItem}>
             <Text style={styles.statLabel}>TIME LEFT</Text>
-            <Text style={styles.statValue}>{quiz.timeLeft || '0 min'}</Text>
+            <Text style={styles.statValue}>{quiz.timeLeft || 'N/A'}</Text>
           </View>
         )}
         {quiz.category === 'attempted' && quiz.score && (
@@ -201,6 +204,20 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 12,
     flexWrap: 'wrap',
+  },
+  languageTag: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginRight: 4,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+  },
+  languageTagText: {
+    fontSize: 11,
+    color: '#1D4ED8',
+    fontWeight: '600',
   },
   tag: {
     backgroundColor: '#F3F4F6',

@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { fetchLiveQuizById } from '../api/liveQuizApi';
 
 const QuizDetails = () => {
   const router = useRouter();
@@ -15,6 +17,27 @@ const QuizDetails = () => {
 
   // Parse quiz data from params
   const quiz = params.quiz ? JSON.parse(params.quiz) : null;
+
+  const [quizData, setQuizData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (quiz?.id) {
+      loadQuizData();
+    }
+  }, [quiz?.id]);
+
+  const loadQuizData = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchLiveQuizById(quiz.id);
+      setQuizData(data);
+    } catch (error) {
+      console.error('Failed to load quiz data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!quiz) {
     return (
@@ -24,22 +47,100 @@ const QuizDetails = () => {
     );
   }
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#B45309" />
+          <Text style={styles.loadingText}>Loading quiz details...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   // Extract quiz topic from title (e.g., "JEE Main • Optics" -> "Optics")
   const quizTopic = quiz.title.split('•')[1]?.trim() || quiz.title;
   const quizCategory = quiz.title.split('•')[0]?.trim() || quiz.subject;
 
-  // Extract language from tags or default to "Hindi"
-  const language = quiz.tags.find(tag =>
-    ['Hindi', 'English'].includes(tag)
-  ) || 'English';
+  // Get language from API data or quiz params, with fallback to "English"
+  const language = quizData?.language ||
+                   quizData?.quiz_metadata?.language ||
+                   quiz.language ||
+                   quiz.quiz_metadata?.language ||
+                   'English';
+
+  // Calculate question count from API or params
+  let questions = 'N/A';
+  let questionCount = 0;
+
+  if (quizData) {
+    if (quizData.questionCount) {
+      questions = String(quizData.questionCount);
+      questionCount = quizData.questionCount;
+    } else if (quizData.totalQuestions !== undefined) {
+      questions = String(quizData.totalQuestions);
+      questionCount = quizData.totalQuestions;
+    } else if (quizData.questions) {
+      if (Array.isArray(quizData.questions)) {
+        questions = String(quizData.questions.length);
+        questionCount = quizData.questions.length;
+      } else if (typeof quizData.questions === 'number') {
+        questions = String(quizData.questions);
+        questionCount = quizData.questions;
+      } else if (typeof quizData.questions === 'string') {
+        questions = quizData.questions;
+        questionCount = parseInt(quizData.questions) || 0;
+      }
+    }
+  } else if (quiz.questions) {
+    if (typeof quiz.questions === 'number') {
+      questions = String(quiz.questions);
+      questionCount = quiz.questions;
+    } else {
+      questions = String(quiz.questions);
+      questionCount = parseInt(quiz.questions) || 0;
+    }
+  }
+
+  // Calculate duration from API or params
+  let duration = 'N/A';
+
+  // Check API data first
+  if (quizData?.duration) {
+    duration = typeof quizData.duration === 'string' ? quizData.duration : `${quizData.duration} min`;
+  } else if (quizData?.durationMinutes) {
+    duration = `${quizData.durationMinutes} min`;
+  }
+  // Calculate from metadata
+  else if (quizData?.quiz_metadata?.time_per_question && questionCount > 0) {
+    const totalSeconds = questionCount * quizData.quiz_metadata.time_per_question;
+    const totalMinutes = Math.ceil(totalSeconds / 60);
+    duration = `${totalMinutes} min`;
+  }
+  // Fallback to params
+  else if (quiz.duration) {
+    duration = quiz.duration;
+  }
+  // Last resort: calculate from question count
+  else if (questionCount > 0) {
+    const totalMinutes = Math.ceil((questionCount * 75) / 60);
+    duration = `${totalMinutes} min`;
+  }
 
   const handleStartQuiz = () => {
     console.log('Starting quiz:', quiz.id);
-    // Navigate to quiz live page
+    // Navigate to quiz live page with merged data (API data + params)
+    const mergedQuizData = {
+      ...quiz,
+      duration: duration,
+      questions: questions,
+      ...(quizData || {}), // Merge API data if available
+    };
+
     router.push({
       pathname: '/QuizLivePage',
       params: {
-        quiz: JSON.stringify(quiz),
+        quiz: JSON.stringify(mergedQuizData),
       },
     });
   };
@@ -68,8 +169,8 @@ const QuizDetails = () => {
           <Text style={styles.quizTitle}>{quiz.title}</Text>
 
           <View style={styles.tagsContainer}>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>{language}</Text>
+            <View style={styles.languageTag}>
+              <Text style={styles.languageTagText}>{language}</Text>
             </View>
             <View style={styles.tag}>
               <Text style={styles.tagText}>{quiz.startTime}</Text>
@@ -81,19 +182,19 @@ const QuizDetails = () => {
           <Text style={styles.topicTitle}>{quizTopic}</Text>
 
           <Text style={styles.description}>
-            You will have exactly {quiz.duration} inside the quiz room. Answers are locked once submitted.{'\n'}
+            You will have exactly {duration} inside the quiz room. Answers are locked once submitted.{'\n'}
             Leaderboard updates in real-time the moment you finish.
           </Text>
 
           <View style={styles.infoBoxesContainer}>
             <View style={styles.infoBox}>
               <Text style={styles.infoBoxLabel}>QUESTIONS</Text>
-              <Text style={styles.infoBoxValue}>{quiz.questions}</Text>
+              <Text style={styles.infoBoxValue}>{questions}</Text>
             </View>
 
             <View style={styles.infoBox}>
               <Text style={styles.infoBoxLabel}>TIME LIMIT</Text>
-              <Text style={styles.infoBoxValue}>{quiz.duration}</Text>
+              <Text style={styles.infoBoxValue}>{duration}</Text>
             </View>
 
             <View style={styles.infoBox}>
@@ -142,6 +243,16 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
+  },
   backButton: {
     alignSelf: 'flex-start',
     paddingHorizontal: 20,
@@ -175,6 +286,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     marginBottom: 24,
+  },
+  languageTag: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+  },
+  languageTagText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1D4ED8',
   },
   tag: {
     backgroundColor: '#F3F4F6',
