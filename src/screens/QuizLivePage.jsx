@@ -230,10 +230,23 @@ const QuizLivePage = () => {
 
           {/* Question Counter and Time Left */}
           <View style={styles.questionInfoContainer}>
-            <View>
+            <View style={styles.questionCounterSection}>
               <Text style={styles.questionCategory}>{quizCategory.toUpperCase()}</Text>
               <Text style={styles.questionCounter}>
-                Question {currentQuestionIndex + 1} of {totalQuestions}
+                Question {currentQuestionIndex + 1}/{totalQuestions}
+              </Text>
+              {/* Progress Bar */}
+              <View style={styles.progressBarContainer}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    { width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%` }
+                  ]}
+                />
+              </View>
+              {/* Answered Count */}
+              <Text style={styles.answeredCount}>
+                {Object.keys(selectedAnswers).length} answered • {totalQuestions - Object.keys(selectedAnswers).length} remaining
               </Text>
             </View>
             <View style={styles.timerContainer}>
@@ -488,6 +501,10 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 32,
   },
+  questionCounterSection: {
+    flex: 1,
+    marginRight: 16,
+  },
   questionCategory: {
     fontSize: 12,
     fontWeight: '600',
@@ -499,6 +516,25 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#111827',
+    marginBottom: 8,
+  },
+  progressBarContainer: {
+    width: '100%',
+    height: 6,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#B45309',
+    borderRadius: 3,
+  },
+  answeredCount: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   timerContainer: {
     backgroundColor: '#F9FAFB',
