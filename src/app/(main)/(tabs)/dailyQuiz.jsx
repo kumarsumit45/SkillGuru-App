@@ -154,7 +154,12 @@ const QuizArenaScreen = () => {
       setError(null);
 
       try {
-        let language = selectedLanguage === 'ALL' ? undefined : selectedLanguage.toLowerCase();
+        // Convert language to proper format for API (capitalize first letter)
+        let language = selectedLanguage === 'ALL'
+          ? undefined
+          : selectedLanguage.charAt(0) + selectedLanguage.slice(1).toLowerCase(); // "ENGLISH" -> "English"
+
+        console.log('Fetching quizzes with language:', language);
 
         // Fetch all three categories in parallel
         const [liveData, upcomingData, attemptedData] = await Promise.all([
@@ -184,11 +189,17 @@ const QuizArenaScreen = () => {
         });
 
         // Log counts for debugging
-        console.log('Quiz counts:', {
+        console.log(`Quiz counts for language '${language || 'ALL'}':`, {
           live: transformedLive.length,
           upcoming: transformedUpcoming.length,
           attempted: transformedAttempted.length
         });
+
+        // Log sample of languages in returned quizzes
+        if (transformedLive.length > 0) {
+          const sampleLanguages = transformedLive.slice(0, 3).map(q => q.language);
+          console.log('Sample quiz languages:', sampleLanguages);
+        }
       } catch (err) {
         console.error('Error fetching quizzes:', err);
         setError(err.message || 'Failed to fetch quizzes');
@@ -329,8 +340,8 @@ const QuizArenaScreen = () => {
            appliedFilters.selectedClasses.length > 0 ||
            appliedFilters.selectedSSCExams.length > 0 ||
            appliedFilters.selectedPopularExams.length > 0
-            ? `Showing filtered quizzes based on your selection.`
-            : 'Showing recommended quizzes across all categories and ranked from most visited.'}
+            ? `Showing filtered quizzes based on your selection${selectedLanguage !== 'ALL' ? ` in ${selectedLanguage.charAt(0) + selectedLanguage.slice(1).toLowerCase()}` : ''}.`
+            : `Showing recommended quizzes${selectedLanguage !== 'ALL' ? ` in ${selectedLanguage.charAt(0) + selectedLanguage.slice(1).toLowerCase()}` : ' across all categories'} and ranked from most visited.`}
         </Text>
       </View>
 
