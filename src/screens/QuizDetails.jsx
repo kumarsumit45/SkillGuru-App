@@ -131,6 +131,44 @@ const QuizDetails = () => {
     duration = `${totalMinutes} min`;
   }
 
+  // Check if quiz time has started (compare current time with quiz start time)
+  const isQuizTimeStarted = () => {
+    try {
+      const startTime = quiz.startTime || quizData?.startTime || quizData?.slotDisplay;
+      if (!startTime) {
+        console.log('No start time specified, allowing access');
+        return true; // If no time specified, allow access
+      }
+
+      // Parse time from formats like "10:00 - 10:59" or "10:00 AM" or "10:00"
+      const timeMatch = startTime.match(/(\d{1,2}):(\d{2})/);
+      if (!timeMatch) {
+        console.log('Cannot parse time format:', startTime, '- allowing access');
+        return true; // If can't parse, allow access
+      }
+
+      const [, quizHour, quizMinute] = timeMatch;
+      const quizStartTime = new Date();
+      quizStartTime.setHours(parseInt(quizHour), parseInt(quizMinute), 0, 0);
+
+      const currentTime = new Date();
+
+      const hasStarted = currentTime >= quizStartTime;
+      console.log('Quiz time check:', {
+        startTime,
+        quizTime: `${quizHour}:${quizMinute}`,
+        currentTime: `${currentTime.getHours()}:${currentTime.getMinutes()}`,
+        hasStarted
+      });
+
+      // Allow if current time is >= quiz start time
+      return hasStarted;
+    } catch (error) {
+      console.error('Error checking quiz time:', error);
+      return true; // On error, allow access
+    }
+  };
+
   const handleStartQuiz = () => {
     console.log('Starting quiz:', quiz.id);
     // Navigate to quiz live page with merged data (API data + params)
@@ -207,8 +245,8 @@ const QuizDetails = () => {
             </View>
           </View>
 
-          {/* Show START QUIZ button only for live quizzes, not for upcoming */}
-          {quiz.category !== 'upcoming' && (
+          {/* Show START QUIZ button only if quiz time has started */}
+          {quiz.category !== 'upcoming' && isQuizTimeStarted() && (
             <TouchableOpacity
               style={styles.startButton}
               onPress={handleStartQuiz}
@@ -217,8 +255,8 @@ const QuizDetails = () => {
             </TouchableOpacity>
           )}
 
-          {/* Show message for upcoming quizzes */}
-          {quiz.category === 'upcoming' && (
+          {/* Show message for upcoming quizzes or quizzes that haven't started yet */}
+          {(quiz.category === 'upcoming' || !isQuizTimeStarted()) && (
             <View style={styles.upcomingNotice}>
               <Text style={styles.upcomingNoticeText}>
                 This quiz hasn't started yet. Please check back at {quiz.startTime}

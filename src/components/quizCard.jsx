@@ -23,6 +23,11 @@ const QuizCard = ({ quiz, onStartQuiz }) => {
             <Text style={styles.upcomingText}>Upcoming</Text>
           </View>
         )}
+        {quiz.category === 'practice' && (
+          <View style={styles.practiceIndicator}>
+            <Text style={styles.practiceText}>Practice</Text>
+          </View>
+        )}
         {quiz.category === 'attempted' && quiz.score && (
           <View style={styles.scoreIndicator}>
             <Text style={styles.scoreText}>Score: {quiz.score}</Text>
@@ -70,8 +75,8 @@ const QuizCard = ({ quiz, onStartQuiz }) => {
       <View style={styles.timeContainer}>
         <Text style={styles.timeLabel}>
           {quiz.category === 'live' ? 'STARTED AT' :
-           quiz.category === 'upcoming' ? 'STARTS AT' :
-           'ATTEMPTED ON'}
+           quiz.category === 'attempted' ? 'ATTEMPTED ON' :
+           'STARTS AT'}
         </Text>
         <Text style={styles.timeValue}>{quiz.startTime || 'N/A'}</Text>
       </View>
@@ -171,6 +176,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#2563EB',
+  },
+  practiceIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E9D5FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  practiceText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#7C3AED',
   },
   scoreIndicator: {
     flexDirection: 'row',

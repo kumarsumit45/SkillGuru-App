@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import FloatingFilter from "../../../components/floatingFilters";
 import QuizCard from "../../../components/quizCard";
-import { fetchLiveQuizzesOnly, fetchUpcomingQuizzes, fetchUserQuizAttempts } from '../../../api/liveQuizApi';
+import { fetchLiveQuizzesOnly, fetchUpcomingQuizzes, fetchUserQuizAttempts, fetchPracticeQuizzes } from '../../../api/liveQuizApi';
 import useAuthStore from '../../../store/authStore';
 
 // Transform API response to match QuizCard expected format
@@ -124,7 +124,7 @@ const transformQuizData = (quiz, category) => {
     tags: tags,
     language: language,
     prize: quiz.prize || quiz.hasPrize || false,
-    startedAgo: quiz.startedAgo || quiz.timeAgo || (category === 'upcoming' ? 'Upcoming' : 'Past'),
+    startedAgo: quiz.startedAgo || quiz.timeAgo || (category === 'upcoming' ? 'Upcoming' : category === 'practice' ? 'Practice' : 'Past'),
     score: quiz.score || quiz.scoreDisplay || '',
   };
 };
@@ -137,7 +137,9 @@ const QuizArenaScreen = () => {
   const [allQuizzes, setAllQuizzes] = useState({
     live: [],
     upcoming: [],
-    attempted: []
+    practice: [],
+    attempted: [],
+    winner: []
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -162,8 +164,8 @@ const QuizArenaScreen = () => {
 
         console.log('Fetching quizzes with language:', language);
 
-        // Fetch all three categories in parallel
-        const [liveData, upcomingData, attemptedData] = await Promise.all([
+        // Fetch all categories in parallel
+        const [liveData, upcomingData, practiceData, attemptedData] = await Promise.all([
           fetchLiveQuizzesOnly({ language }).catch(err => {
             console.error('Error fetching live quizzes:', err);
             return [];
@@ -171,6 +173,10 @@ const QuizArenaScreen = () => {
           fetchUpcomingQuizzes({ language }).catch(err => {
             console.error('Error fetching upcoming quizzes:', err);
             return [];
+          }),
+          fetchPracticeQuizzes({ language, limit: 200 }).catch(err => {
+            console.error('Error fetching practice quizzes:', err);
+            return { items: [] };
           }),
           uid ? fetchUserQuizAttempts(uid).catch(err => {
             console.error('Error fetching attempted quizzes:', err);
@@ -181,18 +187,22 @@ const QuizArenaScreen = () => {
         // Transform data for each category
         const transformedLive = liveData.map(quiz => transformQuizData(quiz, 'live'));
         const transformedUpcoming = upcomingData.map(quiz => transformQuizData(quiz, 'upcoming'));
+        const transformedPractice = (practiceData.items || []).map(quiz => transformQuizData(quiz, 'practice'));
         const transformedAttempted = attemptedData.map(quiz => transformQuizData(quiz, 'attempted'));
 
         setAllQuizzes({
           live: transformedLive,
           upcoming: transformedUpcoming,
-          attempted: transformedAttempted
+          practice: transformedPractice,
+          attempted: transformedAttempted,
+          winner: [] // Placeholder for winner tab
         });
 
         // Log counts for debugging
         console.log(`Quiz counts for language '${language || 'ALL'}':`, {
           live: transformedLive.length,
           upcoming: transformedUpcoming.length,
+          practice: transformedPractice.length,
           attempted: transformedAttempted.length
         });
 
@@ -287,7 +297,9 @@ const QuizArenaScreen = () => {
     const counts = {
       live: applyFiltersToQuizzes(allQuizzes.live || []).length,
       upcoming: applyFiltersToQuizzes(allQuizzes.upcoming || []).length,
+      practice: applyFiltersToQuizzes(allQuizzes.practice || []).length,
       attempted: applyFiltersToQuizzes(allQuizzes.attempted || []).length,
+      winner: applyFiltersToQuizzes(allQuizzes.winner || []).length,
     };
     console.log('Displaying category counts (filtered):', counts);
     return counts;
@@ -307,7 +319,7 @@ const QuizArenaScreen = () => {
     const selectedQuiz = filteredQuizzes.find(q => q.id === quizId);
     if (selectedQuiz) {
 
-      if (selectedQuiz.category === 'live' || selectedQuiz.category === 'upcoming') {
+      if (selectedQuiz.category === 'live' || selectedQuiz.category === 'upcoming' || selectedQuiz.category === 'practice') {
         // Navigate to QuizDetails screen with quiz data
         router.push({
           pathname: '/(main)/QuizDetails',
@@ -316,9 +328,11 @@ const QuizArenaScreen = () => {
           }
         });
       } else if (selectedQuiz.category === 'attempted') {
-
         console.log('View Results for quiz:', quizId);
         // Navigate to results page when ready
+      } else if (selectedQuiz.category === 'winner') {
+        console.log('View Winners for quiz:', quizId);
+        // Navigate to winners page when ready
       }
     }
   };
