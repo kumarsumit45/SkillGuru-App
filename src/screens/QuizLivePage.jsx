@@ -101,8 +101,8 @@ const QuizLivePage = () => {
   };
 
   const handleFinishTest = () => {
-    // TODO: Implement finish test logic
-    router.back();
+    // Navigate to results page
+    handleSubmitQuiz();
   };
 
   const handleSelectOption = (optionKey) => {
@@ -126,8 +126,34 @@ const QuizLivePage = () => {
   };
 
   const handleSubmitAnswer = () => {
-    // TODO: Implement submit answer logic
-    console.log('Submitting answer:', selectedAnswers[currentQuestionIndex]);
+    // Save the current answer (already saved in state)
+    console.log('Answer saved:', selectedAnswers[currentQuestionIndex]);
+
+    const totalQuestions = quizData?.questions?.length || 0;
+
+    // If this is the last question, submit the quiz
+    if (currentQuestionIndex === totalQuestions - 1) {
+      handleSubmitQuiz();
+    } else {
+      // Move to next question
+      handleNext();
+    }
+  };
+
+  const handleSubmitQuiz = () => {
+    // Navigate to results page with quiz data and user answers
+    const resultsData = {
+      ...quiz,
+      questions: quizData?.questions || [],
+    };
+
+    router.push({
+      pathname: '/QuizResultsPage',
+      params: {
+        quiz: JSON.stringify(resultsData),
+        userAnswers: JSON.stringify(selectedAnswers),
+      },
+    });
   };
 
   const formatTime = (seconds) => {
@@ -307,7 +333,9 @@ const QuizLivePage = () => {
                   style={styles.submitButton}
                   onPress={handleSubmitAnswer}
                 >
-                  <Text style={styles.submitButtonText}>SUBMIT ANSWER</Text>
+                  <Text style={styles.submitButtonText}>
+                    {currentQuestionIndex === totalQuestions - 1 ? 'SUBMIT QUIZ' : 'SUBMIT ANSWER'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </>
