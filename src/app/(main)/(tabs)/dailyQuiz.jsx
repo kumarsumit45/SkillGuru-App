@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -42,10 +43,10 @@ const transformQuizData = (quiz, category) => {
     }
   }
 
-  // Calculate duration from API metadata
+  
   let duration = 'N/A';
 
-  // First check if duration is directly provided
+
   if (quiz.duration) {
     duration = typeof quiz.duration === 'string' ? quiz.duration : `${quiz.duration} min`;
   } else if (quiz.durationMinutes) {
@@ -292,7 +293,7 @@ const QuizArenaScreen = () => {
     return counts;
   }, [allQuizzes, appliedFilters]);
 
-  const categoryTabs = ['LIVE', 'UPCOMING', 'ATTEMPTED'];
+  const categoryTabs = ['LIVE', 'UPCOMING', 'PRACTICE', 'ATTEMPTED','WINNER'];
 
   const handleApplyFilters = (filters) => {
     console.log('Applying filters:', filters);
@@ -376,36 +377,43 @@ const QuizArenaScreen = () => {
       </View>
 
       {/* Category Tabs */}
-      <View style={styles.categoryTabs}>
-        {categoryTabs.map((category) => {
-          const categoryKey = category.toLowerCase();
-          const count = categoryCounts[categoryKey] || 0;
-          return (
-            <TouchableOpacity
-              key={category}
-              style={[
-                styles.categoryTab,
-                selectedCategory === categoryKey && styles.categoryTabActive,
-              ]}
-              onPress={() => setSelectedCategory(categoryKey)}
-            >
-              <View style={styles.categoryBadge}>
-                <Text style={[
-                  styles.categoryBadgeText,
-                  selectedCategory === categoryKey && styles.categoryBadgeTextActive
-                ]}>
-                  {category}
-                </Text>
-                <Text style={[
-                  styles.categoryCount,
-                  selectedCategory === categoryKey && styles.categoryCountActive
-                ]}>
-                  ({count})
-                </Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+      <View style={styles.categoryTabsContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryTabsContent}
+          style={styles.categoryTabsScroll}
+        >
+          {categoryTabs.map((category) => {
+            const categoryKey = category.toLowerCase();
+            const count = categoryCounts[categoryKey] || 0;
+            return (
+              <TouchableOpacity
+                key={category}
+                style={[
+                  styles.categoryTab,
+                  selectedCategory === categoryKey && styles.categoryTabActive,
+                ]}
+                onPress={() => setSelectedCategory(categoryKey)}
+              >
+                <View style={styles.categoryBadge}>
+                  <Text style={[
+                    styles.categoryBadgeText,
+                    selectedCategory === categoryKey && styles.categoryBadgeTextActive
+                  ]}>
+                    {category}
+                  </Text>
+                  <Text style={[
+                    styles.categoryCount,
+                    selectedCategory === categoryKey && styles.categoryCountActive
+                  ]}>
+                    ({count})
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* Loading State */}
@@ -533,16 +541,21 @@ const styles = StyleSheet.create({
   languageTabTextActive: {
     color: '#FFFFFF',
   },
-  categoryTabs: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+  categoryTabsContainer: {
     backgroundColor: '#FFFFFF',
-    // borderWidth:1
+    paddingVertical: 12,
+  },
+  categoryTabsScroll: {
+    paddingHorizontal: 16,
+  },
+  categoryTabsContent: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingRight: 16,
   },
   categoryTab: {
-    flex: 1,
+    minWidth: 90,
+    paddingHorizontal: 8,
   },
   categoryTabActive: {
     borderBottomWidth: 2,
