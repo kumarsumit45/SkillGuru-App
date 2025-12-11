@@ -207,12 +207,24 @@ const QuizDetails = () => {
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.startButton}
-            onPress={handleStartQuiz}
-          >
-            <Text style={styles.startButtonText}>START QUIZ</Text>
-          </TouchableOpacity>
+          {/* Show START QUIZ button only for live quizzes, not for upcoming */}
+          {quiz.category !== 'upcoming' && (
+            <TouchableOpacity
+              style={styles.startButton}
+              onPress={handleStartQuiz}
+            >
+              <Text style={styles.startButtonText}>START QUIZ</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Show message for upcoming quizzes */}
+          {quiz.category === 'upcoming' && (
+            <View style={styles.upcomingNotice}>
+              <Text style={styles.upcomingNoticeText}>
+                This quiz hasn't started yet. Please check back at {quiz.startTime}
+              </Text>
+            </View>
+          )}
 
           <TouchableOpacity
             style={styles.backToListButton}
@@ -376,6 +388,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 1,
+  },
+  upcomingNotice: {
+    backgroundColor: '#FEF3C7',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  upcomingNoticeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400E',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   backToListButton: {
     backgroundColor: '#FFFFFF',
