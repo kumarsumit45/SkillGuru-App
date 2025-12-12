@@ -8,13 +8,16 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import FloatingFilter from "../../../components/floatingFilters";
 import QuizCard from "../../../components/quizCard";
-import { fetchLiveQuizzesOnly, fetchUpcomingQuizzes, fetchUserQuizAttempts, fetchPracticeQuizzes } from '../../../api/liveQuizApi';
+import WinnerCard from "../../../components/winnerCard";
+import { fetchLiveQuizzesOnly, fetchUpcomingQuizzes, fetchUserQuizAttempts, fetchPracticeQuizzes, fetchDailyWinners } from '../../../api/liveQuizApi';
 import useAuthStore from '../../../store/authStore';
 
 // Transform API response to match QuizCard expected format
@@ -154,6 +157,17 @@ const QuizArenaScreen = () => {
   });
   const [displayCount, setDisplayCount] = useState(15);
 
+  // Winners tab specific state
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [winnersLoading, setWinnersLoading] = useState(false);
+  const [winnersError, setWinnersError] = useState(null);
+  const [dailyWinnersData, setDailyWinnersData] = useState({
+    slots: [],
+    totalSlots: 0,
+    date: null
+  });
+
   // Fetch all quizzes when language changes
   useEffect(() => {
     const fetchAllQuizzes = async () => {
@@ -225,6 +239,61 @@ const QuizArenaScreen = () => {
 
     fetchAllQuizzes();
   }, [selectedLanguage, uid]);
+
+  // Fetch winners data when Winners tab is selected
+  useEffect(() => {
+    const fetchWinners = async () => {
+      if (selectedCategory !== 'winner') return;
+
+      setWinnersLoading(true);
+      setWinnersError(null);
+
+      try {
+        // Format date as YYYY-MM-DD
+        const formattedDate = selectedDate.toISOString().split('T')[0];
+        console.log('Fetching winners for date:', formattedDate);
+
+        const data = await fetchDailyWinners(formattedDate, true);
+        console.log('Winners data received:', data);
+
+        // Transform the data to match our component structure
+        // Filter out slots with no winners and flatten the structure
+        const winners = data?.winners || [];
+        const slotsWithWinners = winners
+          .filter(slot => slot.winner !== null)
+          .map(slot => ({
+            slotHourKey: slot.slotHourKey,
+            slotDisplay: slot.slotDisplay,
+            participantCount: slot.totalSlotParticipants || slot.totalParticipants || 0,
+            // Flatten winner data
+            userName: slot.winner.userName || slot.winner.displayName || 'Guest User',
+            displayName: slot.winner.displayName || slot.winner.userName || 'Guest User',
+            userClass: slot.winner.quizLabel || 'N/A',
+            score: slot.winner.score || 0,
+            accuracy: slot.winner.accuracy || 0,
+            timeSpent: slot.winner.effectiveTimeSeconds || 0,
+            // Keep original winner data for reference
+            ...slot.winner
+          }));
+
+        console.log('Transformed winners:', slotsWithWinners);
+
+        setDailyWinnersData({
+          slots: slotsWithWinners,
+          totalSlots: slotsWithWinners.length,
+          date: formattedDate
+        });
+
+      } catch (err) {
+        console.error('Error fetching winners:', err);
+        setWinnersError(err.message || 'Failed to fetch winners');
+      } finally {
+        setWinnersLoading(false);
+      }
+    };
+
+    fetchWinners();
+  }, [selectedCategory, selectedDate]);
 
   // Helper function to check if text contains exact match with word boundaries
   const matchesExactly = (text, searchTerm) => {
@@ -355,6 +424,26 @@ const QuizArenaScreen = () => {
     setDisplayCount(prevCount => prevCount + 15);
   };
 
+  // Winners tab handlers
+  const handleDateChange = (event, date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (date) {
+      setSelectedDate(date);
+    }
+  };
+
+  const handleRefreshWinners = () => {
+    // Trigger re-fetch by updating a timestamp or directly calling the effect
+    setSelectedDate(new Date(selectedDate.getTime())); // Force re-render
+  };
+
+  const formatDisplayDate = (date) => {
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -481,8 +570,8 @@ const QuizArenaScreen = () => {
         </View>
       )}
 
-      {/* Empty State */}
-      {!loading && !error && filteredQuizzes.length === 0 && (
+      {/* Empty State (for non-winner tabs) */}
+      {selectedCategory !== 'winner' && !loading && !error && filteredQuizzes.length === 0 && (
         <View style={styles.centerContainer}>
           <Text style={styles.emptyText}>No {selectedCategory} quizzes available</Text>
           {selectedCategory === 'attempted' && !uid && (
@@ -491,8 +580,101 @@ const QuizArenaScreen = () => {
         </View>
       )}
 
-      {/* Quiz List */}
-      {!loading && !error && filteredQuizzes.length > 0 && (
+      {/* Winners Tab Content */}
+      {selectedCategory === 'winner' && (
+        <>
+          {/* Winners Header */}
+          <View style={styles.winnersHeader}>
+            <Text style={styles.winnersTitle}>HOURLY WINNERS</Text>
+            <Text style={styles.winnersDescription}>
+              Top scorers across hourly slots. Winners are the highest scorers for each hourly quiz slot, determined by total points (correct answers × 4 – incorrect answers).
+            </Text>
+
+            {/* Date Picker and Refresh Button */}
+            <View style={styles.winnersControls}>
+              <View style={styles.datePickerContainer}>
+                <Text style={styles.dateLabel}>Select Date:</Text>
+                <TouchableOpacity
+                  style={styles.datePickerButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text style={styles.datePickerText}>{formatDisplayDate(selectedDate)}</Text>
+                  <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.refreshButton}
+                onPress={handleRefreshWinners}
+                disabled={winnersLoading}
+              >
+                <Text style={styles.refreshButtonText}>REFRESH</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Status Text */}
+            <Text style={styles.winnersStatus}>
+              Showing {formatDisplayDate(selectedDate)}'s winners • {dailyWinnersData.totalSlots} hourly slots
+            </Text>
+          </View>
+
+          {/* Date Picker Modal */}
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={handleDateChange}
+              maximumDate={new Date()}
+            />
+          )}
+
+          {/* Loading State for Winners */}
+          {winnersLoading && (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color="#DC2626" />
+              <Text style={styles.loadingText}>Loading winners...</Text>
+            </View>
+          )}
+
+          {/* Error State for Winners */}
+          {winnersError && !winnersLoading && (
+            <View style={styles.centerContainer}>
+              <Text style={styles.errorText}>⚠️ {winnersError}</Text>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={handleRefreshWinners}
+              >
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Empty State for Winners */}
+          {!winnersLoading && !winnersError && dailyWinnersData.slots.length === 0 && (
+            <View style={styles.centerContainer}>
+              <Text style={styles.emptyText}>No winners found for this date</Text>
+              <Text style={styles.emptySubtext}>Try selecting a different date</Text>
+            </View>
+          )}
+
+          {/* Winners List */}
+          {!winnersLoading && !winnersError && dailyWinnersData.slots.length > 0 && (
+            <FlatList
+              data={dailyWinnersData.slots}
+              keyExtractor={(item, index) => item.slotHourKey || `slot-${index}`}
+              renderItem={({ item }) => (
+                <WinnerCard winner={item} />
+              )}
+              contentContainerStyle={styles.quizList}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </>
+      )}
+
+      {/* Quiz List (for non-winner tabs) */}
+      {selectedCategory !== 'winner' && !loading && !error && filteredQuizzes.length > 0 && (
         <FlatList
           data={displayedQuizzes}
           keyExtractor={(item) => item.id || item._id || String(Math.random())}
@@ -715,6 +897,77 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  winnersHeader: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 12,
+  },
+  winnersTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  winnersDescription: {
+    fontSize: 11,
+    color: '#6B7280',
+    lineHeight: 16,
+    marginBottom: 16,
+  },
+  winnersControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    gap: 12,
+  },
+  datePickerContainer: {
+    flex: 1,
+  },
+  dateLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  datePickerText: {
+    fontSize: 13,
+    color: '#1F2937',
+    fontWeight: '500',
+  },
+  refreshButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignSelf: 'flex-end',
+  },
+  refreshButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    letterSpacing: 0.5,
+  },
+  winnersStatus: {
+    fontSize: 11,
+    color: '#6B7280',
+    lineHeight: 16,
   },
 });
 
