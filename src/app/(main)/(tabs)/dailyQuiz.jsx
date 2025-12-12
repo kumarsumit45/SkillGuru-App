@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -148,6 +149,7 @@ const QuizArenaScreen = () => {
     winner: []
   });
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [appliedFilters, setAppliedFilters] = useState({
     selectedCategories: [],
@@ -437,6 +439,62 @@ const QuizArenaScreen = () => {
     setSelectedDate(new Date(selectedDate.getTime())); // Force re-render
   };
 
+  // Handle pull-to-refresh for all quiz tabs
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setError(null);
+
+    try {
+      // Convert language to proper format for API
+      let language = selectedLanguage === 'ALL'
+        ? undefined
+        : selectedLanguage.charAt(0) + selectedLanguage.slice(1).toLowerCase();
+
+      console.log('Refreshing quizzes with language:', language);
+
+      // Fetch all categories in parallel
+      const [liveData, upcomingData, practiceData, attemptedData] = await Promise.all([
+        fetchLiveQuizzesOnly({ language }).catch(err => {
+          console.error('Error fetching live quizzes:', err);
+          return [];
+        }),
+        fetchUpcomingQuizzes({ language }).catch(err => {
+          console.error('Error fetching upcoming quizzes:', err);
+          return [];
+        }),
+        fetchPracticeQuizzes({ language, limit: 200 }).catch(err => {
+          console.error('Error fetching practice quizzes:', err);
+          return { items: [] };
+        }),
+        uid ? fetchUserQuizAttempts(uid).catch(err => {
+          console.error('Error fetching attempted quizzes:', err);
+          return [];
+        }) : Promise.resolve([])
+      ]);
+
+      // Transform data for each category
+      const transformedLive = liveData.map(quiz => transformQuizData(quiz, 'live'));
+      const transformedUpcoming = upcomingData.map(quiz => transformQuizData(quiz, 'upcoming'));
+      const transformedPractice = (practiceData.items || []).map(quiz => transformQuizData(quiz, 'practice'));
+      const transformedAttempted = attemptedData.map(quiz => transformQuizData(quiz, 'attempted'));
+
+      setAllQuizzes({
+        live: transformedLive,
+        upcoming: transformedUpcoming,
+        practice: transformedPractice,
+        attempted: transformedAttempted,
+        winner: [] // Placeholder for winner tab
+      });
+
+      console.log('Quizzes refreshed successfully');
+    } catch (err) {
+      console.error('Error refreshing quizzes:', err);
+      setError(err.message || 'Failed to refresh quizzes');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const formatDisplayDate = (date) => {
     const day = date.getDate();
     const month = date.getMonth() + 1;
@@ -583,41 +641,6 @@ const QuizArenaScreen = () => {
       {/* Winners Tab Content */}
       {selectedCategory === 'winner' && (
         <>
-          {/* Winners Header */}
-          <View style={styles.winnersHeader}>
-            <Text style={styles.winnersTitle}>HOURLY WINNERS</Text>
-            <Text style={styles.winnersDescription}>
-              Top scorers across hourly slots. Winners are the highest scorers for each hourly quiz slot, determined by total points (correct answers × 4 – incorrect answers).
-            </Text>
-
-            {/* Date Picker and Refresh Button */}
-            <View style={styles.winnersControls}>
-              <View style={styles.datePickerContainer}>
-                <Text style={styles.dateLabel}>Select Date:</Text>
-                <TouchableOpacity
-                  style={styles.datePickerButton}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <Text style={styles.datePickerText}>{formatDisplayDate(selectedDate)}</Text>
-                  <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity
-                style={styles.refreshButton}
-                onPress={handleRefreshWinners}
-                disabled={winnersLoading}
-              >
-                <Text style={styles.refreshButtonText}>REFRESH</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Status Text */}
-            <Text style={styles.winnersStatus}>
-              Showing {formatDisplayDate(selectedDate)}'s winners • {dailyWinnersData.totalSlots} hourly slots
-            </Text>
-          </View>
-
           {/* Date Picker Modal */}
           {showDatePicker && (
             <DateTimePicker
@@ -658,7 +681,7 @@ const QuizArenaScreen = () => {
             </View>
           )}
 
-          {/* Winners List */}
+          {/* Winners List with Header */}
           {!winnersLoading && !winnersError && dailyWinnersData.slots.length > 0 && (
             <FlatList
               data={dailyWinnersData.slots}
@@ -668,6 +691,49 @@ const QuizArenaScreen = () => {
               )}
               contentContainerStyle={styles.quizList}
               showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={winnersLoading}
+                  onRefresh={handleRefreshWinners}
+                  colors={['#DC2626']}
+                  tintColor="#DC2626"
+                />
+              }
+              ListHeaderComponent={
+                <View style={styles.winnersHeader}>
+                  <Text style={styles.winnersTitle}>HOURLY WINNERS</Text>
+                  <Text style={styles.winnersDescription}>
+                    Top scorers across hourly slots. Winners are the highest scorers for each hourly quiz slot, determined by total points (correct answers × 4 – incorrect answers).
+                  </Text>
+
+                  {/* Date Picker and Refresh Button */}
+                  <View style={styles.winnersControls}>
+                    <View style={styles.datePickerContainer}>
+                      <Text style={styles.dateLabel}>Select Date:</Text>
+                      <TouchableOpacity
+                        style={styles.datePickerButton}
+                        onPress={() => setShowDatePicker(true)}
+                      >
+                        <Text style={styles.datePickerText}>{formatDisplayDate(selectedDate)}</Text>
+                        <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.refreshButton}
+                      onPress={handleRefreshWinners}
+                      disabled={winnersLoading}
+                    >
+                      <Text style={styles.refreshButtonText}>REFRESH</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Status Text */}
+                  <Text style={styles.winnersStatus}>
+                    Showing {formatDisplayDate(selectedDate)}'s winners • {dailyWinnersData.totalSlots} hourly slots
+                  </Text>
+                </View>
+              }
             />
           )}
         </>
@@ -683,6 +749,14 @@ const QuizArenaScreen = () => {
           )}
           contentContainerStyle={styles.quizList}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={['#DC2626']}
+              tintColor="#DC2626"
+            />
+          }
           ListFooterComponent={
             displayCount < filteredQuizzes.length ? (
               <Pressable style={styles.loadMoreButton} onPress={handleLoadMore}>
@@ -902,7 +976,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    marginBottom: 12,
+    marginBottom: 0,
   },
   winnersTitle: {
     fontSize: 14,
