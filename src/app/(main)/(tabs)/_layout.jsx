@@ -40,8 +40,8 @@ const Tablayout = () => {
       <Tabs.Screen
         name="dailyQuiz"
         options={{
-          title: "Daily Quiz",
-          tabBarLabel: "Daily Quiz",
+          title: "Live Quiz",
+          tabBarLabel: "Live Quiz",
           tabBarIcon:()=>(
             <Image source={BarIcons.dailyQuiz} style={{height:25,width:25}} contentFit="contain" />
           )
@@ -58,10 +58,10 @@ const Tablayout = () => {
         }}
       />
       <Tabs.Screen
-        name="creators"
+        name="profile"
         options={{
-          title: "Top Creators",
-          tabBarLabel: "Top Creators",
+          title: "Profile",
+          tabBarLabel: "Profile",
           tabBarIcon:()=>(
             <Image source={BarIcons.topCreator} style={{height:25,width:25}} contentFit="contain" />
           )
