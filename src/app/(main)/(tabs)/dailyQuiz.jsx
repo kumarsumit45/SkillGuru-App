@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +11,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from '@expo/vector-icons';
 import FloatingFilter from "../../../components/floatingFilters";
 import QuizCard from "../../../components/quizCard";
 import { fetchLiveQuizzesOnly, fetchUpcomingQuizzes, fetchUserQuizAttempts, fetchPracticeQuizzes } from '../../../api/liveQuizApi';
@@ -132,6 +134,7 @@ const transformQuizData = (quiz, category) => {
 const QuizArenaScreen = () => {
   const router = useRouter();
   const { uid } = useAuthStore();
+  const filterRef = useRef(null);
   const [selectedLanguage, setSelectedLanguage] = useState('ALL');
   const [selectedCategory, setSelectedCategory] = useState('live');
   const [allQuizzes, setAllQuizzes] = useState({
@@ -149,6 +152,7 @@ const QuizArenaScreen = () => {
     selectedSSCExams: [],
     selectedPopularExams: []
   });
+  const [displayCount, setDisplayCount] = useState(15);
 
   // Fetch all quizzes when language changes
   useEffect(() => {
@@ -292,6 +296,16 @@ const QuizArenaScreen = () => {
     return applyFiltersToQuizzes(quizzes);
   }, [allQuizzes, selectedCategory, appliedFilters]);
 
+  // Get the quizzes to display based on displayCount
+  const displayedQuizzes = useMemo(() => {
+    return filteredQuizzes.slice(0, displayCount);
+  }, [filteredQuizzes, displayCount]);
+
+  // Reset displayCount when category or filters change
+  useEffect(() => {
+    setDisplayCount(15);
+  }, [selectedCategory, appliedFilters]);
+
   // Get counts for each category based on applied filters
   const categoryCounts = useMemo(() => {
     const counts = {
@@ -337,6 +351,10 @@ const QuizArenaScreen = () => {
     }
   };
 
+  const handleLoadMore = () => {
+    setDisplayCount(prevCount => prevCount + 15);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -362,7 +380,16 @@ const QuizArenaScreen = () => {
 
       {/* Language Selector */}
       <View style={styles.languageSection}>
-        <Text style={styles.languageLabel}>LANGUAGE</Text>
+        <View style={styles.languageHeader}>
+          <Text style={styles.languageLabel}>LANGUAGE</Text>
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => filterRef.current?.openFilter()}
+          >
+            <Ionicons name="filter" size={18} color="#DC2626" />
+            <Text style={styles.filterButtonText}>Filters</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.languageTabs}>
           {[
             { label: 'ALL LANGUAGES', value: 'ALL' },
@@ -467,18 +494,29 @@ const QuizArenaScreen = () => {
       {/* Quiz List */}
       {!loading && !error && filteredQuizzes.length > 0 && (
         <FlatList
-          data={filteredQuizzes}
+          data={displayedQuizzes}
           keyExtractor={(item) => item.id || item._id || String(Math.random())}
           renderItem={({ item }) => (
             <QuizCard quiz={item} onStartQuiz={handleStartQuiz} />
           )}
           contentContainerStyle={styles.quizList}
           showsVerticalScrollIndicator={false}
+          ListFooterComponent={
+            displayCount < filteredQuizzes.length ? (
+              <Pressable style={styles.loadMoreButton} onPress={handleLoadMore}>
+                <Text style={styles.loadMoreText}>Load More Quizes</Text>
+              </Pressable>
+            ) : null
+          }
         />
       )}
 
-      {/* Floating Filter Button */}
-      <FloatingFilter onApplyFilters={handleApplyFilters} />
+      {/* Floating Filter (Hidden) */}
+      <FloatingFilter
+        ref={filterRef}
+        onApplyFilters={handleApplyFilters}
+        hideFloatingButton={true}
+      />
     </SafeAreaView>
   );
 };
@@ -527,12 +565,31 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: '#FFFFFF',
   },
+  languageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   languageLabel: {
     fontSize: 11,
     fontWeight: '600',
     color: '#9CA3AF',
-    marginBottom: 8,
     letterSpacing: 0.5,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#FEE2E2',
+  },
+  filterButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#DC2626',
   },
   languageTabs: {
     flexDirection: 'row',
@@ -643,6 +700,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
     textAlign: 'center',
+  },
+  loadMoreButton: {
+    backgroundColor: '#DC2626',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

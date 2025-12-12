@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import {
   View,
   Text,
@@ -13,13 +13,18 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
-const FloatingFilter = ({ onApplyFilters }) => {
+const FloatingFilter = forwardRef(({ onApplyFilters, hideFloatingButton = false }, ref) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedClasses, setSelectedClasses] = useState([]);
   const [selectedSSCExams, setSelectedSSCExams] = useState([]);
   const [selectedPopularExams, setSelectedPopularExams] = useState([]);
   const [expandedSections, setExpandedSections] = useState([]);
+
+  // Expose openFilter method to parent component
+  useImperativeHandle(ref, () => ({
+    openFilter: () => setIsOpen(true),
+  }));
 
   const categories = [
     { id: 'recommended', label: 'Recommended for you', icon: 'star' },
@@ -141,21 +146,23 @@ const FloatingFilter = ({ onApplyFilters }) => {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={hideFloatingButton ? styles.hiddenContainer : styles.container}>
       {/* Floating Pill Button */}
-      <TouchableOpacity
-        style={styles.floatingPill}
-        onPress={() => setIsOpen(true)}
-        activeOpacity={0.9}
-      >
-        <View style={styles.pillContent}>
-          <View style={styles.pillTextContainer}>
-            <Text style={styles.pillTitle}>Filters & categories</Text>
-            <Text style={styles.pillSubtitle}>{getFilterSummary()}</Text>
+      {!hideFloatingButton && (
+        <TouchableOpacity
+          style={styles.floatingPill}
+          onPress={() => setIsOpen(true)}
+          activeOpacity={0.9}
+        >
+          <View style={styles.pillContent}>
+            <View style={styles.pillTextContainer}>
+              <Text style={styles.pillTitle}>Filters & categories</Text>
+              <Text style={styles.pillSubtitle}>{getFilterSummary()}</Text>
+            </View>
+            <Text style={styles.openButton}>OPEN</Text>
           </View>
-          <Text style={styles.openButton}>OPEN</Text>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      )}
 
       {/* Bottom Sheet Modal */}
       <Modal
@@ -302,7 +309,7 @@ const FloatingFilter = ({ onApplyFilters }) => {
       </Modal>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -310,6 +317,9 @@ const styles = StyleSheet.create({
     bottom: 20,
     left: 16,
     right: 16,
+  },
+  hiddenContainer: {
+    // Container for modal only, no positioning needed
   },
   floatingPill: {
     backgroundColor: '#FFFFFF',
