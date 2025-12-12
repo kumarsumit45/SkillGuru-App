@@ -382,11 +382,11 @@ const QuizArenaScreen = () => {
       upcoming: applyFiltersToQuizzes(allQuizzes.upcoming || []).length,
       practice: applyFiltersToQuizzes(allQuizzes.practice || []).length,
       attempted: applyFiltersToQuizzes(allQuizzes.attempted || []).length,
-      winner: applyFiltersToQuizzes(allQuizzes.winner || []).length,
+      winner: dailyWinnersData.totalSlots || 0,
     };
     console.log('Displaying category counts (filtered):', counts);
     return counts;
-  }, [allQuizzes, appliedFilters]);
+  }, [allQuizzes, appliedFilters, dailyWinnersData]);
 
   const categoryTabs = ['LIVE', 'UPCOMING', 'PRACTICE', 'ATTEMPTED','WINNER'];
 
