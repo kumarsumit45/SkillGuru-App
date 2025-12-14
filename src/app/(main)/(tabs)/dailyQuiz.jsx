@@ -652,90 +652,96 @@ const QuizArenaScreen = () => {
             />
           )}
 
-          {/* Loading State for Winners */}
-          {winnersLoading && (
-            <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color="#DC2626" />
-              <Text style={styles.loadingText}>Loading winners...</Text>
-            </View>
-          )}
+          {/* Winners Content with Date Filter Always Visible */}
+          <ScrollView
+            style={styles.winnersScrollContainer}
+            contentContainerStyle={styles.winnersScrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={winnersLoading}
+                onRefresh={handleRefreshWinners}
+                colors={['#DC2626']}
+                tintColor="#DC2626"
+              />
+            }
+          >
+            {/* Winners Header with Date Filter - Always Visible */}
+            <View style={styles.winnersHeader}>
+              <Text style={styles.winnersTitle}>HOURLY WINNERS</Text>
+              <Text style={styles.winnersDescription}>
+                Top scorers across hourly slots. Winners are the highest scorers for each hourly quiz slot, determined by total points (correct answers × 4 – incorrect answers).
+              </Text>
 
-          {/* Error State for Winners */}
-          {winnersError && !winnersLoading && (
-            <View style={styles.centerContainer}>
-              <Text style={styles.errorText}>⚠️ {winnersError}</Text>
-              <TouchableOpacity
-                style={styles.retryButton}
-                onPress={handleRefreshWinners}
-              >
-                <Text style={styles.retryButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Empty State for Winners */}
-          {!winnersLoading && !winnersError && dailyWinnersData.slots.length === 0 && (
-            <View style={styles.centerContainer}>
-              <Text style={styles.emptyText}>No winners found for this date</Text>
-              <Text style={styles.emptySubtext}>Try selecting a different date</Text>
-            </View>
-          )}
-
-          {/* Winners List with Header */}
-          {!winnersLoading && !winnersError && dailyWinnersData.slots.length > 0 && (
-            <FlatList
-              data={dailyWinnersData.slots}
-              keyExtractor={(item, index) => item.slotHourKey || `slot-${index}`}
-              renderItem={({ item }) => (
-                <WinnerCard winner={item} />
-              )}
-              contentContainerStyle={styles.quizList}
-              showsVerticalScrollIndicator={false}
-              refreshControl={
-                <RefreshControl
-                  refreshing={winnersLoading}
-                  onRefresh={handleRefreshWinners}
-                  colors={['#DC2626']}
-                  tintColor="#DC2626"
-                />
-              }
-              ListHeaderComponent={
-                <View style={styles.winnersHeader}>
-                  <Text style={styles.winnersTitle}>HOURLY WINNERS</Text>
-                  <Text style={styles.winnersDescription}>
-                    Top scorers across hourly slots. Winners are the highest scorers for each hourly quiz slot, determined by total points (correct answers × 4 – incorrect answers).
-                  </Text>
-
-                  {/* Date Picker and Refresh Button */}
-                  <View style={styles.winnersControls}>
-                    <View style={styles.datePickerContainer}>
-                      <Text style={styles.dateLabel}>Select Date:</Text>
-                      <TouchableOpacity
-                        style={styles.datePickerButton}
-                        onPress={() => setShowDatePicker(true)}
-                      >
-                        <Text style={styles.datePickerText}>{formatDisplayDate(selectedDate)}</Text>
-                        <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-                      </TouchableOpacity>
-                    </View>
-
-                    <TouchableOpacity
-                      style={styles.refreshButton}
-                      onPress={handleRefreshWinners}
-                      disabled={winnersLoading}
-                    >
-                      <Text style={styles.refreshButtonText}>REFRESH</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Status Text */}
-                  <Text style={styles.winnersStatus}>
-                    Showing {formatDisplayDate(selectedDate)}'s winners • {dailyWinnersData.totalSlots} hourly slots
-                  </Text>
+              {/* Date Picker and Refresh Button */}
+              <View style={styles.winnersControls}>
+                <View style={styles.datePickerContainer}>
+                  <Text style={styles.dateLabel}>Select Date:</Text>
+                  <TouchableOpacity
+                    style={styles.datePickerButton}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Text style={styles.datePickerText}>{formatDisplayDate(selectedDate)}</Text>
+                    <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+                  </TouchableOpacity>
                 </View>
-              }
-            />
-          )}
+
+                <TouchableOpacity
+                  style={styles.refreshButton}
+                  onPress={handleRefreshWinners}
+                  disabled={winnersLoading}
+                >
+                  <Text style={styles.refreshButtonText}>REFRESH</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Status Text */}
+              <Text style={styles.winnersStatus}>
+                Showing {formatDisplayDate(selectedDate)}'s winners • {dailyWinnersData.totalSlots} hourly slots
+              </Text>
+            </View>
+
+            {/* Loading State for Winners */}
+            {winnersLoading && (
+              <View style={styles.centerContainer}>
+                <ActivityIndicator size="large" color="#DC2626" />
+                <Text style={styles.loadingText}>Loading winners...</Text>
+              </View>
+            )}
+
+            {/* Error State for Winners */}
+            {winnersError && !winnersLoading && (
+              <View style={styles.centerContainer}>
+                <Text style={styles.errorText}>⚠️ {winnersError}</Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={handleRefreshWinners}
+                >
+                  <Text style={styles.retryButtonText}>Retry</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Empty State for Winners */}
+            {!winnersLoading && !winnersError && dailyWinnersData.slots.length === 0 && (
+              <View style={styles.centerContainer}>
+                <Text style={styles.emptyText}>No winners found for this date</Text>
+                <Text style={styles.emptySubtext}>Try selecting a different date</Text>
+              </View>
+            )}
+
+            {/* Winners List */}
+            {!winnersLoading && !winnersError && dailyWinnersData.slots.length > 0 && (
+              <View style={styles.winnersList}>
+                {dailyWinnersData.slots.map((item, index) => (
+                  <WinnerCard
+                    key={item.slotHourKey || `slot-${index}`}
+                    winner={item}
+                  />
+                ))}
+              </View>
+            )}
+          </ScrollView>
         </>
       )}
 
@@ -972,6 +978,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
+  winnersScrollContainer: {
+    flex: 1,
+  },
+  winnersScrollContent: {
+    paddingBottom: 20,
+  },
   winnersHeader: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
@@ -1042,6 +1054,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#6B7280',
     lineHeight: 16,
+  },
+  winnersList: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    gap: 12,
   },
 });
 
