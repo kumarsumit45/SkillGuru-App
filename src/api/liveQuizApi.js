@@ -278,9 +278,9 @@ export async function fetchLiveQuizLeaderboard(quizId, { limit, sessionId, inclu
   }
 }
 
-export async function fetchUserQuizAttempts(userId, { limit = 50 } = {}) {
+export async function fetchUserQuizAttempts(userId, { limit = 50, includeQuestions = true } = {}) {
   if (!userId) return [];
-  const query = buildQueryString({ limit });
+  const query = buildQueryString({ limit, includeQuestions });
   try {
     const response = await fetch(`${LIVE_QUIZ_BASE}/results/user/${userId}${query}`);
     const data = await parseApiResponse(response);

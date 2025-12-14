@@ -18,7 +18,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import FloatingFilter from "../../../components/floatingFilters";
 import QuizCard from "../../../components/quizCard";
 import WinnerCard from "../../../components/winnerCard";
-import { fetchLiveQuizzesOnly, fetchUpcomingQuizzes, fetchUserQuizAttempts, fetchPracticeQuizzes, fetchDailyWinners } from '../../../api/liveQuizApi';
+import { fetchLiveQuizzesOnly, fetchUpcomingQuizzes, fetchUserQuizAttempts, fetchPracticeQuizzes, fetchDailyWinners, fetchLiveQuizById } from '../../../api/liveQuizApi';
 import useAuthStore from '../../../store/authStore';
 
 // Transform API response to match QuizCard expected format
@@ -116,11 +116,60 @@ const transformQuizData = (quiz, category) => {
   // Extract language from API
   const language = quiz.language || quiz.quiz_metadata?.language || null;
 
+  // For attempted quizzes, extract additional data
+  let userAnswers = {};
+  let answersArray = [];
+  let attemptedDate = 'N/A';
+  let scoreValue = '';
+
+  if (category === 'attempted') {
+    // Extract user answers from the quiz attempt data
+    // Store both as object (for display) and array (for detailed view)
+    if (quiz.answers && Array.isArray(quiz.answers)) {
+      answersArray = quiz.answers; // Keep original array
+      quiz.answers.forEach((answer, index) => {
+        if (answer.selectedOption) {
+          userAnswers[index] = answer.selectedOption;
+        } else if (answer.userAnswer) {
+          userAnswers[index] = answer.userAnswer;
+        }
+      });
+    } else if (quiz.userAnswers) {
+      if (typeof quiz.userAnswers === 'object' && !Array.isArray(quiz.userAnswers)) {
+        userAnswers = quiz.userAnswers;
+      } else if (Array.isArray(quiz.userAnswers)) {
+        answersArray = quiz.userAnswers;
+        quiz.userAnswers.forEach((answer, index) => {
+          userAnswers[index] = answer.selectedOption || answer.userAnswer || answer;
+        });
+      }
+    }
+
+    // Format attempted date
+    if (quiz.attemptedAt || quiz.completedAt || quiz.createdAt) {
+      const attemptDate = new Date(quiz.attemptedAt || quiz.completedAt || quiz.createdAt);
+      attemptedDate = attemptDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+
+    // Format score display
+    if (quiz.score !== undefined && quiz.totalQuestions !== undefined) {
+      scoreValue = `${quiz.score}/${quiz.totalQuestions}`;
+    } else if (quiz.correctCount !== undefined && questionCount > 0) {
+      scoreValue = `${quiz.correctCount}/${questionCount}`;
+    } else if (quiz.score !== undefined) {
+      scoreValue = String(quiz.score);
+    }
+  }
+
   return {
     id: quiz.id || quiz._id || String(Math.random()),
     title: quiz.title || quiz.label || quiz.quizLabel || 'Quiz',
     subject: quiz.subject || quiz.quizSubject || 'General',
-    startTime: quiz.startTime || quiz.slotDisplay || quiz.scheduledAt || 'N/A',
+    startTime: category === 'attempted' ? attemptedDate : (quiz.startTime || quiz.slotDisplay || quiz.scheduledAt || 'N/A'),
     difficulty: typeof quiz.difficulty === 'string' ? quiz.difficulty : 'intermediate',
     questions: questions,
     duration: duration,
@@ -131,7 +180,14 @@ const transformQuizData = (quiz, category) => {
     language: language,
     prize: quiz.prize || quiz.hasPrize || false,
     startedAgo: quiz.startedAgo || quiz.timeAgo || (category === 'upcoming' ? 'Upcoming' : category === 'practice' ? 'Practice' : 'Past'),
-    score: quiz.score || quiz.scoreDisplay || '',
+    score: scoreValue || quiz.score || quiz.scoreDisplay || '',
+    userAnswers: userAnswers,
+    answers: answersArray.length > 0 ? answersArray : quiz.answers || [],
+    accuracy: quiz.accuracy || null,
+    correctCount: quiz.correctCount || null,
+    incorrectCount: quiz.incorrectCount || null,
+    unattemptedCount: quiz.unattemptedCount || null,
+    timeSpentSeconds: quiz.timeSpentSeconds || quiz.effectiveTimeSeconds || null,
   };
 };
 
@@ -198,7 +254,7 @@ const QuizArenaScreen = () => {
             console.error('Error fetching practice quizzes:', err);
             return { items: [] };
           }),
-          uid ? fetchUserQuizAttempts(uid).catch(err => {
+          uid ? fetchUserQuizAttempts(uid, { limit: 100, includeQuestions: true }).catch(err => {
             console.error('Error fetching attempted quizzes:', err);
             return [];
           }) : Promise.resolve([])
@@ -405,7 +461,7 @@ const QuizArenaScreen = () => {
     setAppliedFilters(filters);
   };
 
-  const handleStartQuiz = (quizId) => {
+  const handleStartQuiz = async (quizId) => {
     // console.log('Start Quiz:', quizId);
 
     // Find the quiz in the current category
@@ -421,8 +477,94 @@ const QuizArenaScreen = () => {
           }
         });
       } else if (selectedQuiz.category === 'attempted') {
-        // console.log('View Results for quiz:', quizId);
-        // Navigate to results page when ready
+        // Navigate to results page for attempted quiz
+        setLoading(true);
+        try {
+          console.log('Loading attempted quiz results for:', quizId);
+          console.log('Attempted quiz data:', selectedQuiz);
+
+          let quizQuestions = [];
+          let quizMetadata = null;
+
+          // First, check if the attempted quiz already has questions embedded
+          if (selectedQuiz.questions && Array.isArray(selectedQuiz.questions) && selectedQuiz.questions.length > 0) {
+            console.log('Using questions from attempted quiz data');
+            quizQuestions = selectedQuiz.questions;
+            quizMetadata = selectedQuiz.quiz_metadata;
+          } else {
+            // Try to fetch from live quiz endpoint
+            console.log('Fetching questions from live quiz endpoint');
+            try {
+              const quizData = await fetchLiveQuizById(quizId);
+              if (quizData && quizData.questions && quizData.questions.length > 0) {
+                quizQuestions = quizData.questions;
+                quizMetadata = quizData.quiz_metadata;
+              }
+            } catch (fetchError) {
+              console.warn('Could not fetch from live quiz endpoint:', fetchError.message);
+              // Quiz might be expired, continue without questions if we have answer data
+            }
+          }
+
+          // If we still don't have questions, check if we can reconstruct from answers
+          if (quizQuestions.length === 0 && selectedQuiz.answers && Array.isArray(selectedQuiz.answers)) {
+            console.warn('No questions found, but we have answer data. Quiz might be expired.');
+            alert('This quiz has expired and detailed results are no longer available. Only your score is shown.');
+            setLoading(false);
+            return;
+          }
+
+          if (quizQuestions.length === 0) {
+            console.error('Could not load quiz questions for attempted quiz');
+            alert('Unable to load quiz details. The quiz may have been removed.');
+            setLoading(false);
+            return;
+          }
+
+          // Prepare complete quiz data for results page
+          const resultsData = {
+            ...selectedQuiz,
+            questions: quizQuestions,
+            quiz_metadata: quizMetadata,
+          };
+
+          // Convert user answers to the format expected by results page
+          // Results page expects: { 0: 'A', 1: 'B', 2: 'C', ... }
+          let userAnswersFormatted = {};
+
+          if (selectedQuiz.userAnswers && typeof selectedQuiz.userAnswers === 'object') {
+            // Already in correct format
+            userAnswersFormatted = selectedQuiz.userAnswers;
+          } else if (selectedQuiz.answers && Array.isArray(selectedQuiz.answers)) {
+            // Convert from array format: [{ questionId, selectedOption }, ...]
+            selectedQuiz.answers.forEach((answer, index) => {
+              if (answer.selectedOption) {
+                userAnswersFormatted[index] = answer.selectedOption;
+              }
+            });
+          }
+
+          console.log('Navigating to results with:', {
+            quizId,
+            questionsCount: quizQuestions.length,
+            answersCount: Object.keys(userAnswersFormatted).length,
+            userAnswers: userAnswersFormatted,
+          });
+
+          setLoading(false);
+
+          router.push({
+            pathname: '/(main)/QuizResultsPage',
+            params: {
+              quiz: JSON.stringify(resultsData),
+              userAnswers: JSON.stringify(userAnswersFormatted),
+            },
+          });
+        } catch (error) {
+          console.error('Error navigating to results:', error);
+          setLoading(false);
+          alert('Failed to load quiz results. Please try again.');
+        }
       } else if (selectedQuiz.category === 'winner') {
         // console.log('View Winners for quiz:', quizId);
         // Navigate to winners page when ready
@@ -474,7 +616,7 @@ const QuizArenaScreen = () => {
           console.error('Error fetching practice quizzes:', err);
           return { items: [] };
         }),
-        uid ? fetchUserQuizAttempts(uid).catch(err => {
+        uid ? fetchUserQuizAttempts(uid, { limit: 100, includeQuestions: true }).catch(err => {
           console.error('Error fetching attempted quizzes:', err);
           return [];
         }) : Promise.resolve([])

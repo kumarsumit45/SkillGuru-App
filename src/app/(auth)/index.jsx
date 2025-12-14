@@ -274,7 +274,7 @@ const AuthScreen = () => {
       } else {
         console.log("verification failed");
         console.log("verification failed but still taking you to homepage");
-        // setTimeout(() => router.push("/(main)/(tabs)"), 0);
+        setTimeout(() => router.push("/(main)/(tabs)"), 0);
         // setTimeout(() => router.push("/"), 0);
       }
     } catch (e) {
