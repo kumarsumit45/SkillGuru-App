@@ -63,7 +63,7 @@ export async function fetchLiveQuizzesOnly({
   labels = [],
   exams = [],
   language,
-  limit = "200",
+  limit = "300",
   atTime,
   daysBack = 7,
   daysForward = 1,
@@ -322,12 +322,14 @@ export async function fetchDailyWinners(date, includeDetails = true) {
  * @param {number} params.limit - Items per page (default: 20)
  * @param {Array} params.labels - Filter by labels
  * @param {string} params.language - Filter by language
+ * @param {boolean} params.fetchAll - Fetch all pages if true (default: false)
  */
 export async function fetchPracticeQuizzes({
   page = 1,
   limit = 20,
   labels = [],
   language,
+  fetchAll = false,
 } = {}) {
   const query = buildQueryString({
     page,
@@ -339,13 +341,51 @@ export async function fetchPracticeQuizzes({
   try {
     const response = await fetch(`${LIVE_QUIZ_BASE}/practice${query}`);
     const data = await parseApiResponse(response);
-    return {
+    const result = {
       items: Array.isArray(data?.items) ? data.items : [],
       total: data?.total || 0,
       page: data?.page || page,
       limit: data?.limit || limit,
       hasMore: data?.hasMore !== undefined ? data.hasMore : (data?.items?.length || 0) === limit,
     };
+
+    // If fetchAll is true, fetch all remaining pages
+    if (fetchAll && result.hasMore) {
+      let currentPage = page + 1;
+      let allItems = [...result.items];
+
+      while (true) {
+        const nextQuery = buildQueryString({
+          page: currentPage,
+          limit,
+          labels,
+          language,
+        });
+
+        const nextResponse = await fetch(`${LIVE_QUIZ_BASE}/practice${nextQuery}`);
+        const nextData = await parseApiResponse(nextResponse);
+        const nextItems = Array.isArray(nextData?.items) ? nextData.items : [];
+
+        if (nextItems.length === 0) break;
+
+        allItems = [...allItems, ...nextItems];
+
+        const hasMore = nextData?.hasMore !== undefined ? nextData.hasMore : nextItems.length === limit;
+        if (!hasMore) break;
+
+        currentPage++;
+      }
+
+      return {
+        items: allItems,
+        total: data?.total || allItems.length,
+        page: 1,
+        limit: allItems.length,
+        hasMore: false,
+      };
+    }
+
+    return result;
   } catch (error) {
     console.warn('[liveQuizApi] Failed to fetch practice quizzes:', error.message);
     throw error;

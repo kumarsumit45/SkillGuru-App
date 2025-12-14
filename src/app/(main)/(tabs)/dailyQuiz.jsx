@@ -194,7 +194,7 @@ const QuizArenaScreen = () => {
             console.error('Error fetching upcoming quizzes:', err);
             return [];
           }),
-          fetchPracticeQuizzes({ language, limit: 200 }).catch(err => {
+          fetchPracticeQuizzes({ language, limit: 100, fetchAll: true }).catch(err => {
             console.error('Error fetching practice quizzes:', err);
             return { items: [] };
           }),
@@ -204,11 +204,19 @@ const QuizArenaScreen = () => {
           }) : Promise.resolve([])
         ]);
 
-        // Transform data for each category
-        const transformedLive = liveData.map(quiz => transformQuizData(quiz, 'live'));
-        const transformedUpcoming = upcomingData.map(quiz => transformQuizData(quiz, 'upcoming'));
-        const transformedPractice = (practiceData.items || []).map(quiz => transformQuizData(quiz, 'practice'));
-        const transformedAttempted = attemptedData.map(quiz => transformQuizData(quiz, 'attempted'));
+        // Transform data for each category and filter out quizzes with 0 questions
+        const transformedLive = liveData
+          .map(quiz => transformQuizData(quiz, 'live'))
+          .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
+        const transformedUpcoming = upcomingData
+          .map(quiz => transformQuizData(quiz, 'upcoming'))
+          .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
+        const transformedPractice = (practiceData.items || [])
+          .map(quiz => transformQuizData(quiz, 'practice'))
+          .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
+        const transformedAttempted = attemptedData
+          .map(quiz => transformQuizData(quiz, 'attempted'))
+          .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
 
         setAllQuizzes({
           live: transformedLive,
@@ -462,7 +470,7 @@ const QuizArenaScreen = () => {
           console.error('Error fetching upcoming quizzes:', err);
           return [];
         }),
-        fetchPracticeQuizzes({ language, limit: 200 }).catch(err => {
+        fetchPracticeQuizzes({ language, limit: 100, fetchAll: true }).catch(err => {
           console.error('Error fetching practice quizzes:', err);
           return { items: [] };
         }),
@@ -472,11 +480,19 @@ const QuizArenaScreen = () => {
         }) : Promise.resolve([])
       ]);
 
-      // Transform data for each category
-      const transformedLive = liveData.map(quiz => transformQuizData(quiz, 'live'));
-      const transformedUpcoming = upcomingData.map(quiz => transformQuizData(quiz, 'upcoming'));
-      const transformedPractice = (practiceData.items || []).map(quiz => transformQuizData(quiz, 'practice'));
-      const transformedAttempted = attemptedData.map(quiz => transformQuizData(quiz, 'attempted'));
+      // Transform data for each category and filter out quizzes with 0 questions
+      const transformedLive = liveData
+        .map(quiz => transformQuizData(quiz, 'live'))
+        .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
+      const transformedUpcoming = upcomingData
+        .map(quiz => transformQuizData(quiz, 'upcoming'))
+        .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
+      const transformedPractice = (practiceData.items || [])
+        .map(quiz => transformQuizData(quiz, 'practice'))
+        .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
+      const transformedAttempted = attemptedData
+        .map(quiz => transformQuizData(quiz, 'attempted'))
+        .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
 
       setAllQuizzes({
         live: transformedLive,
@@ -700,14 +716,6 @@ const QuizArenaScreen = () => {
                 Showing {formatDisplayDate(selectedDate)}'s winners • {dailyWinnersData.totalSlots} hourly slots
               </Text>
             </View>
-
-            {/* Loading State for Winners */}
-            {winnersLoading && (
-              <View style={styles.centerContainer}>
-                <ActivityIndicator size="large" color="#DC2626" />
-                <Text style={styles.loadingText}>Loading winners...</Text>
-              </View>
-            )}
 
             {/* Error State for Winners */}
             {winnersError && !winnersLoading && (
