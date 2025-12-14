@@ -1,53 +1,88 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Share, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Share, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons, FontAwesome5, Feather,Entypo } from '@expo/vector-icons';
 import COLORS from '../../../constants/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { fetchUserProfile } from '../../../api/profileUserApi';
+import useAuthStore from '../../../store/authStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth } from '../../../config/firebase';
+import { useRouter } from 'expo-router';
 
 const ProfilePage = () => {
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
+  const [userData, setUserData] = useState(null);
+  const { uid, clearAuth } = useAuthStore();
+  const router = useRouter();
 
-  // Mock user data - replace with actual data from your store/API
-  const userData = {
-    name: "Sk Sabir",
-    email: "sksabir9994@gmail.com",
-    status: "Offline",
-    avatar: null,
-    referralLink: "https://theskillguru.org/signup?ref=9e695...",
-    stats: {
-      reputationScore: 0.0,
-      totalCallTime: "0.0h",
-      questionsAsked: 0,
-      solutionsProvided: 0,
-      liveImpactScore: 0,
-      learningTime: "0h 0m"
-    },
-    weeklyGoal: {
-      target: 28,
-      current: 0,
-      percentage: 0.0
-    },
-    dailyProgress: [
-      { day: "Saturday, 6 Dec", time: "0h 0m - 4h 5m" },
-      { day: "Sunday, 7 Dec", time: "0h 0m - 4h 5m" },
-      { day: "Monday, 8 Dec", time: "0h 0m - 4h 5m" },
-      { day: "Tuesday, 9 Dec", time: "0h 0m - 4h 5m" },
-      { day: "Wednesday, 10 Dec", time: "0h 0m - 4h 5m" },
-      { day: "Thursday, 11 Dec", time: "0h 0m - 4h 5m" },
-      { day: "Friday, 12 Dec", time: "0h 0m - 4h 5m" },
-    ],
-    referralsCount: 0
+  // Fetch user profile data
+  useEffect(() => {
+    loadUserProfile();
+  }, [uid]);
+
+  const loadUserProfile = async () => {
+    if (!uid) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setError(null);
+      const profileData = await fetchUserProfile(uid);
+
+      // Transform API data to match component structure
+      const transformedData = {
+        name: profileData.displayName || profileData.name || "Guest User",
+        email: profileData.email || "Not provided",
+        status: profileData.isOnline ? "Online" : "Offline",
+        avatar: profileData.photoURL || profileData.avatar || null,
+        referralLink: profileData.referralLink || `https://theskillguru.org/signup?ref=${uid}`,
+        stats: {
+          reputationScore: profileData.reputationScore || 0,
+          totalCallTime: profileData.totalCallTime || "0.0h",
+          questionsAsked: profileData.questionsAsked || 0,
+          solutionsProvided: profileData.solutionsProvided || 0,
+          liveImpactScore: profileData.liveImpactScore || 0,
+          learningTime: profileData.learningTime || "0h 0m"
+        },
+        weeklyGoal: {
+          target: profileData.weeklyGoal?.target || 28,
+          current: profileData.weeklyGoal?.current || 0,
+          percentage: profileData.weeklyGoal?.percentage || 0.0
+        },
+        dailyProgress: profileData.dailyProgress || [],
+        referralsCount: profileData.referralsCount || 0
+      };
+
+      setUserData(transformedData);
+    } catch (err) {
+      console.error('Error loading user profile:', err);
+      setError(err.message || 'Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadUserProfile();
+    setRefreshing(false);
   };
 
   const handleCopyLink = async () => {
+    if (!userData?.referralLink) return;
     await Clipboard.setStringAsync(userData.referralLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShare = async () => {
+    if (!userData?.referralLink) return;
     try {
       await Share.share({
         message: `Join SkillGuru and start learning! ${userData.referralLink}`,
@@ -58,13 +93,96 @@ const ProfilePage = () => {
   };
 
   const handleLogout = () => {
-    // Implement logout logic
-    console.log('Logout pressed');
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear AsyncStorage
+              await AsyncStorage.removeItem('uid');
+              await AsyncStorage.removeItem('authToken');
+
+              // Sign out from Firebase
+              if (auth.currentUser) {
+                await auth.signOut();
+              }
+
+              // Clear auth store
+              clearAuth();
+
+              // Navigate to auth screen
+              router.replace('/(auth)');
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          }
+        }
+      ]
+    );
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color="#ef4444" />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadUserProfile}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // No user data state
+  if (!userData) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <Ionicons name="person-outline" size={48} color="#9ca3af" />
+          <Text style={styles.emptyText}>Please log in to view your profile</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          colors={['#6366f1']}
+          tintColor="#6366f1"
+        />
+      }
+    >
       {/* Header */}
       <View style={styles.headerSection}>
         <Text style={styles.headerTitle}>My Profile</Text>
@@ -234,12 +352,16 @@ const ProfilePage = () => {
 
         <View style={styles.dailyProgress}>
           <Text style={styles.dailyProgressTitle}>This Week's Daily Progress</Text>
-          {userData.dailyProgress.map((item, index) => (
-            <View key={index} style={styles.dailyItem}>
-              <Text style={styles.dailyDay}>{item.day}</Text>
-              <Text style={styles.dailyTime}>{item.time}</Text>
-            </View>
-          ))}
+          {userData.dailyProgress && userData.dailyProgress.length > 0 ? (
+            userData.dailyProgress.map((item, index) => (
+              <View key={index} style={styles.dailyItem}>
+                <Text style={styles.dailyDay}>{item.day}</Text>
+                <Text style={styles.dailyTime}>{item.time}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.emptyProgressText}>No progress data available yet</Text>
+          )}
         </View>
       </View>
 
@@ -654,6 +776,49 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 30,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#ef4444',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  emptyProgressText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textAlign: 'center',
+    paddingVertical: 20,
+    fontStyle: 'italic',
   },
 });
 

@@ -182,7 +182,7 @@ const QuizArenaScreen = () => {
           ? undefined
           : selectedLanguage.charAt(0) + selectedLanguage.slice(1).toLowerCase(); // "ENGLISH" -> "English"
 
-        console.log('Fetching quizzes with language:', language);
+        // console.log('Fetching quizzes with language:', language);
 
         // Fetch all categories in parallel
         const [liveData, upcomingData, practiceData, attemptedData] = await Promise.all([
@@ -227,17 +227,17 @@ const QuizArenaScreen = () => {
         });
 
         // Log counts for debugging
-        console.log(`Quiz counts for language '${language || 'ALL'}':`, {
-          live: transformedLive.length,
-          upcoming: transformedUpcoming.length,
-          practice: transformedPractice.length,
-          attempted: transformedAttempted.length
-        });
+        // console.log(`Quiz counts for language '${language || 'ALL'}':`, {
+        //   live: transformedLive.length,
+        //   upcoming: transformedUpcoming.length,
+        //   practice: transformedPractice.length,
+        //   attempted: transformedAttempted.length
+        // });
 
         // Log sample of languages in returned quizzes
         if (transformedLive.length > 0) {
           const sampleLanguages = transformedLive.slice(0, 3).map(q => q.language);
-          console.log('Sample quiz languages:', sampleLanguages);
+          // console.log('Sample quiz languages:', sampleLanguages);
         }
       } catch (err) {
         console.error('Error fetching quizzes:', err);
@@ -261,10 +261,10 @@ const QuizArenaScreen = () => {
       try {
         // Format date as YYYY-MM-DD
         const formattedDate = selectedDate.toISOString().split('T')[0];
-        console.log('Fetching winners for date:', formattedDate);
+        // console.log('Fetching winners for date:', formattedDate);
 
         const data = await fetchDailyWinners(formattedDate, true);
-        console.log('Winners data received:', data);
+        // console.log('Winners data received:', data);
 
         // Transform the data to match our component structure
         // Filter out slots with no winners and flatten the structure
@@ -286,7 +286,7 @@ const QuizArenaScreen = () => {
             ...slot.winner
           }));
 
-        console.log('Transformed winners:', slotsWithWinners);
+        // console.log('Transformed winners:', slotsWithWinners);
 
         setDailyWinnersData({
           slots: slotsWithWinners,
@@ -394,19 +394,19 @@ const QuizArenaScreen = () => {
       attempted: applyFiltersToQuizzes(allQuizzes.attempted || []).length,
       winner: dailyWinnersData.totalSlots || 0,
     };
-    console.log('Displaying category counts (filtered):', counts);
+    // console.log('Displaying category counts (filtered):', counts);
     return counts;
   }, [allQuizzes, appliedFilters, dailyWinnersData]);
 
   const categoryTabs = ['LIVE', 'UPCOMING', 'PRACTICE', 'ATTEMPTED','WINNER'];
 
   const handleApplyFilters = (filters) => {
-    console.log('Applying filters:', filters);
+    // console.log('Applying filters:', filters);
     setAppliedFilters(filters);
   };
 
   const handleStartQuiz = (quizId) => {
-    console.log('Start Quiz:', quizId);
+    // console.log('Start Quiz:', quizId);
 
     // Find the quiz in the current category
     const selectedQuiz = filteredQuizzes.find(q => q.id === quizId);
@@ -421,10 +421,10 @@ const QuizArenaScreen = () => {
           }
         });
       } else if (selectedQuiz.category === 'attempted') {
-        console.log('View Results for quiz:', quizId);
+        // console.log('View Results for quiz:', quizId);
         // Navigate to results page when ready
       } else if (selectedQuiz.category === 'winner') {
-        console.log('View Winners for quiz:', quizId);
+        // console.log('View Winners for quiz:', quizId);
         // Navigate to winners page when ready
       }
     }
@@ -458,7 +458,7 @@ const QuizArenaScreen = () => {
         ? undefined
         : selectedLanguage.charAt(0) + selectedLanguage.slice(1).toLowerCase();
 
-      console.log('Refreshing quizzes with language:', language);
+      // console.log('Refreshing quizzes with language:', language);
 
       // Fetch all categories in parallel
       const [liveData, upcomingData, practiceData, attemptedData] = await Promise.all([
@@ -502,7 +502,7 @@ const QuizArenaScreen = () => {
         winner: [] // Placeholder for winner tab
       });
 
-      console.log('Quizzes refreshed successfully');
+      // console.log('Quizzes refreshed successfully');
     } catch (err) {
       console.error('Error refreshing quizzes:', err);
       setError(err.message || 'Failed to refresh quizzes');
