@@ -34,29 +34,35 @@ const ProfilePage = () => {
     try {
       setError(null);
       const profileData = await fetchUserProfile(uid);
+      console.log('Profile data from API:', profileData);
 
-      // Transform API data to match component structure
+      // Map actual API response fields with defaults for Performance Overview
       const transformedData = {
-        name: profileData.displayName || profileData.name || "Guest User",
-        email: profileData.email || "Not provided",
-        status: profileData.isOnline ? "Online" : "Offline",
-        avatar: profileData.photoURL || profileData.avatar || null,
-        referralLink: profileData.referralLink || `https://theskillguru.org/signup?ref=${uid}`,
+        name: profileData.fullName || "Guest User",
+        email: profileData.userEmail ?? "Email Not Provided",
+        phoneNumber: profileData.userPhone || profileData.phoneNumber,
+        status: profileData["Is online"] ? "Online" : "Offline",
+        avatar: profileData.profileImageUrl || null,
+        referralLink: profileData.referralLink || `https://theskillguru.org/signup?ref=${profileData.id}`,
+        city: profileData.city,
+        state: profileData.state,
+        guruSkills: profileData["Guru skills"] || [],
+        learnerSkills: profileData.learnerSkills || [],
         stats: {
-          reputationScore: profileData.reputationScore || 0,
-          totalCallTime: profileData.totalCallTime || "0.0h",
-          questionsAsked: profileData.questionsAsked || 0,
-          solutionsProvided: profileData.solutionsProvided || 0,
-          liveImpactScore: profileData.liveImpactScore || 0,
-          learningTime: profileData.learningTime || "0h 0m"
+          reputationScore: profileData.reputationScore ?? 0,
+          totalCallTime: profileData.totalCallTime ?? "0.0h",
+          questionsAsked: profileData.questionsAsked ?? 0,
+          solutionsProvided: profileData.solutionsProvided ?? 0,
+          liveImpactScore: profileData.liveImpactScore ?? 0,
+          learningTime: profileData.learningTime ?? "0h 0m"
         },
-        weeklyGoal: {
-          target: profileData.weeklyGoal?.target || 28,
-          current: profileData.weeklyGoal?.current || 0,
-          percentage: profileData.weeklyGoal?.percentage || 0.0
-        },
+        weeklyGoal: profileData.weeklyGoal ? {
+          target: profileData.weeklyGoal.target,
+          current: profileData.weeklyGoal.current,
+          percentage: profileData.weeklyGoal.percentage
+        } : null,
         dailyProgress: profileData.dailyProgress || [],
-        referralsCount: profileData.referralsCount || 0
+        referralsCount: profileData.referralsCount
       };
 
       setUserData(transformedData);
@@ -225,6 +231,8 @@ const ProfilePage = () => {
 
           <Text style={styles.userEmail}>{userData.email}</Text>
 
+          <Text style={styles.userPhone}>{userData.phoneNumber}</Text>
+
           <View style={styles.profileButtons}>
             <TouchableOpacity style={styles.editButton}>
               <Ionicons name="create-outline" size={18} color="#fff" />
@@ -336,19 +344,25 @@ const ProfilePage = () => {
           <Text style={styles.sectionTitle}>Learning Goals & Progress</Text>
         </View>
 
-        <View style={styles.weeklyGoal}>
-          <View style={styles.goalHeader}>
-            <Text style={styles.goalTitle}>Weekly Learning Goal ({userData.weeklyGoal.target} hours)</Text>
-            <Text style={styles.goalPercentage}>{userData.weeklyGoal.percentage}%</Text>
+        {userData.weeklyGoal ? (
+          <View style={styles.weeklyGoal}>
+            <View style={styles.goalHeader}>
+              <Text style={styles.goalTitle}>Weekly Learning Goal ({userData.weeklyGoal.target} hours)</Text>
+              <Text style={styles.goalPercentage}>{userData.weeklyGoal.percentage}%</Text>
+            </View>
+            <View style={styles.progressBarContainer}>
+              <View style={[styles.progressBar, { width: `${userData.weeklyGoal.percentage}%` }]} />
+            </View>
+            <View style={styles.goalTimeline}>
+              <Text style={styles.goalTime}>{userData.weeklyGoal.current}h</Text>
+              <Text style={styles.goalTime}>{userData.weeklyGoal.target}h</Text>
+            </View>
           </View>
-          <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBar, { width: `${userData.weeklyGoal.percentage}%` }]} />
+        ) : (
+          <View style={styles.weeklyGoal}>
+            <Text style={styles.emptyProgressText}>No weekly goal set yet</Text>
           </View>
-          <View style={styles.goalTimeline}>
-            <Text style={styles.goalTime}>0h 0m</Text>
-            <Text style={styles.goalTime}>28h 0m</Text>
-          </View>
-        </View>
+        )}
 
         <View style={styles.dailyProgress}>
           <Text style={styles.dailyProgressTitle}>This Week's Daily Progress</Text>
@@ -369,7 +383,7 @@ const ProfilePage = () => {
       <TouchableOpacity style={styles.referralsButton}>
         <FontAwesome5 name="users" size={16} color="#fff" />
         <Text style={styles.referralsButtonText}>
-          View Referrals ({userData.referralsCount})
+          View Referrals ({userData.referralsCount ?? 0})
         </Text>
       </TouchableOpacity>
 
@@ -395,6 +409,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
     backgroundColor: '#fff',
+    alignItems:"center",
+    justifyContent:"center"
+
   },
   headerTitle: {
     fontSize: 28,
@@ -492,6 +509,11 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   userEmail: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginBottom: 5,
+  },
+  userPhone: {
     fontSize: 14,
     color: '#9ca3af',
     marginBottom: 16,
