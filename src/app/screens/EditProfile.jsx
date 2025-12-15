@@ -12,7 +12,8 @@ import {
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { fetchUserProfile, updateUserProfile } from '../../api/profileUserApi';
+import { fetchUserProfile } from '../../api/profileUserApi';
+import { updateProfileWithAPI } from '../../api/editProfileApi';
 import useAuthStore from '../../store/authStore';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -47,6 +48,8 @@ const EditProfile = () => {
     state: '',
     guruSkills: [],
     profileImageUrl: null,
+    countryCode: '+91',
+    roles: [],
   });
 
   const [newSkill, setNewSkill] = useState('');
@@ -70,22 +73,24 @@ const EditProfile = () => {
         class: profileData.class || '',
         school: profileData.school || '',
         institutionCompany: profileData.institutionCompany || '',
-        googleMeetLink: profileData.googleMeetLink || '',
-        phoneNumber: profileData.userPhone || profileData.phoneNumber || '',
+        googleMeetLink: profileData.googleMeetLink || profileData.meet_link || '',
+        phoneNumber: profileData.phoneNumber || (profileData.userPhone ? profileData.userPhone.replace(/^\+\d{1,3}/, '') : ''),
         userEmail: profileData.userEmail || '',
         teacherCost: profileData.teacherCost?.toString() || '',
         language: profileData.language || '',
-        proficiencyLevel: profileData.proficiencyLevel || '',
+        proficiencyLevel: profileData.proficiencyLevel || profileData.proficiency || '',
         proficiencySkills: {
-          read: profileData.proficiencySkills?.read || false,
-          write: profileData.proficiencySkills?.write || false,
-          speak: profileData.proficiencySkills?.speak || false,
+          read: profileData.proficiencySkills?.read || profileData.read || false,
+          write: profileData.proficiencySkills?.write || profileData.write || false,
+          speak: profileData.proficiencySkills?.speak || profileData.speak || false,
         },
         gender: profileData.gender || '',
         city: profileData.city || '',
         state: profileData.state || '',
-        guruSkills: profileData['Guru skills'] || [],
+        guruSkills: profileData['Guru skills'] || profileData.guruSkills || [],
         profileImageUrl: profileData.profileImageUrl || null,
+        countryCode: profileData.countryCode || '+91',
+        roles: profileData.roles || profileData.role || [],
       });
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -135,7 +140,7 @@ const EditProfile = () => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -167,7 +172,7 @@ const EditProfile = () => {
         school: formData.school,
         institutionCompany: formData.institutionCompany,
         googleMeetLink: formData.googleMeetLink,
-        userPhone: formData.phoneNumber,
+        phoneNumber: formData.phoneNumber,
         userEmail: formData.userEmail,
         teacherCost: parseFloat(formData.teacherCost) || 0,
         language: formData.language,
@@ -176,11 +181,13 @@ const EditProfile = () => {
         gender: formData.gender,
         city: formData.city,
         state: formData.state,
-        'Guru skills': formData.guruSkills,
+        guruSkills: formData.guruSkills,
         profileImageUrl: formData.profileImageUrl,
+        countryCode: formData.countryCode,
+        roles: formData.roles,
       };
 
-      await updateUserProfile(uid, updateData);
+      await updateProfileWithAPI(uid, updateData);
       Alert.alert('Success', 'Profile updated successfully', [
         {
           text: 'OK',
