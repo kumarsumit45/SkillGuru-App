@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
@@ -15,6 +15,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchDailyWinners, fetchLiveQuizById, fetchLiveQuizzesOnly, fetchPracticeQuizzes, fetchUpcomingQuizzes, fetchUserQuizAttempts } from '../../../api/liveQuizApi';
 import FloatingFilter from "../../../components/floatingFilters";
 import QuizCard from "../../../components/quizCard";
@@ -352,6 +353,27 @@ const QuizArenaScreen = () => {
 
     return () => clearTimeout(timeoutId);
   }, [selectedLanguage, uid]);
+
+  // Check for cache refresh flag when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const checkAndRefreshCache = async () => {
+        try {
+          const needsRefresh = await AsyncStorage.getItem('quiz_cache_needs_refresh');
+          if (needsRefresh === 'true') {
+            console.log('Cache refresh flag detected, clearing cache and refetching...');
+            quizCache.clear();
+            await AsyncStorage.removeItem('quiz_cache_needs_refresh');
+            await fetchAllQuizzes(true); // Force refresh
+          }
+        } catch (error) {
+          console.error('Error checking cache refresh flag:', error);
+        }
+      };
+
+      checkAndRefreshCache();
+    }, [fetchAllQuizzes])
+  );
 
   // Fetch winners data when Winners tab is selected
   useEffect(() => {

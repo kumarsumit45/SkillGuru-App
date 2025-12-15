@@ -9,30 +9,36 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { fetchLiveQuizById } from '../../api/liveQuizApi';
+import { fetchLiveQuizById, startLiveQuizSession, completeLiveQuizSession } from '../../api/liveQuizApi';
+import useAuthStore from '../../store/authStore';
 
 const QuizLivePage = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const quiz = params.quiz ? JSON.parse(params.quiz) : null;
+  const { uid } = useAuthStore();
 
   const [quizData, setQuizData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(0); // Quiz duration timer (time limit to complete)
+  const [sessionId, setSessionId] = useState(null); // Track quiz session
+  const [quizStartTime, setQuizStartTime] = useState(null); // Track when quiz started
 
   useEffect(() => {
-  if (quiz?.id) {
-    // Reset all state when starting a new quiz
-    setCurrentQuestionIndex(0);
-    setSelectedAnswers({});
-    setTimeLeft(0);
-    
-    // Load the new quiz data
-    loadQuizData();
-  }
-}, [quiz?.id]);
+    if (quiz?.id) {
+      // Reset all state when starting a new quiz
+      setCurrentQuestionIndex(0);
+      setSelectedAnswers({});
+      setTimeLeft(0);
+      setSessionId(null);
+      setQuizStartTime(null);
+
+      // Load the new quiz data
+      loadQuizData();
+    }
+  }, [quiz?.id]);
 
   useEffect(() => {
     // Timer countdown
@@ -41,6 +47,10 @@ const QuizLivePage = () => {
         setTimeLeft(timeLeft - 1);
       }, 1000);
       return () => clearTimeout(timer);
+    } else if (timeLeft === 0 && quizData?.questions?.length > 0 && quizStartTime) {
+      // Auto-submit when timer reaches zero
+      console.log('Time is up! Auto-submitting quiz...');
+      handleSubmitQuiz();
     }
   }, [timeLeft]);
 
@@ -52,6 +62,25 @@ const QuizLivePage = () => {
 
       // Calculate quiz duration (time limit to complete the quiz)
       calculateTimeFromDuration(data);
+
+      // Start quiz session with backend (if user is logged in)
+      if (uid && quiz.id) {
+        try {
+          const sessionData = await startLiveQuizSession(quiz.id, {
+            userId: uid,
+            startedAt: new Date().toISOString(),
+          });
+
+          if (sessionData?.sessionId) {
+            setSessionId(sessionData.sessionId);
+            setQuizStartTime(Date.now());
+            console.log('Quiz session started:', sessionData.sessionId);
+          }
+        } catch (sessionError) {
+          console.warn('Failed to start quiz session:', sessionError);
+          // Continue without session - user can still take quiz locally
+        }
+      }
     } catch (error) {
       console.error('Failed to load quiz data:', error);
     } finally {
@@ -103,12 +132,14 @@ const QuizLivePage = () => {
     }
   };
 
-    const handleBack = () => {
+  const handleBack = () => {
     // Reset state before navigating back
     setCurrentQuestionIndex(0);
     setSelectedAnswers({});
     setTimeLeft(0);
-    
+    setSessionId(null);
+    setQuizStartTime(null);
+
     router.back();
   };
 
@@ -152,7 +183,77 @@ const QuizLivePage = () => {
     }
   };
 
-  const handleSubmitQuiz = () => {
+  const handleSubmitQuiz = async () => {
+    // Calculate quiz results
+    const questions = quizData?.questions || [];
+    let correctCount = 0;
+    let incorrectCount = 0;
+    let unattemptedCount = 0;
+
+    // Convert answers for backend submission
+    const answersArray = questions.map((question, index) => {
+      const userAnswer = selectedAnswers[index];
+      let correctAnswer = question.correct_answer || question.correctAnswer;
+
+      // Convert correct answer to option letter if needed
+      if (correctAnswer && question.options) {
+        const correctIndex = question.options.findIndex(option => {
+          const optionText = typeof option === 'string' ? option : option.text;
+          return optionText === correctAnswer;
+        });
+        if (correctIndex !== -1) {
+          correctAnswer = String.fromCharCode(65 + correctIndex);
+        }
+      }
+
+      const isCorrect = userAnswer && userAnswer === correctAnswer;
+      if (userAnswer) {
+        if (isCorrect) {
+          correctCount++;
+        } else {
+          incorrectCount++;
+        }
+      } else {
+        unattemptedCount++;
+      }
+
+      return {
+        questionId: question.id || question._id || `q_${index}`,
+        selectedOption: userAnswer || null,
+        isCorrect: isCorrect,
+      };
+    });
+
+    // Calculate time spent
+    const timeSpentSeconds = quizStartTime ? Math.floor((Date.now() - quizStartTime) / 1000) : 0;
+
+    // Submit quiz session to backend (if session exists)
+    if (uid && quiz.id && sessionId) {
+      try {
+        await completeLiveQuizSession({
+          quizId: quiz.id,
+          sessionId: sessionId,
+          answers: answersArray,
+          summary: {
+            userId: uid,
+            score: correctCount,
+            totalQuestions: questions.length,
+            correctCount: correctCount,
+            incorrectCount: incorrectCount,
+            unattemptedCount: unattemptedCount,
+            timeSpentSeconds: timeSpentSeconds,
+            completedAt: new Date().toISOString(),
+          },
+        });
+        console.log('Quiz attempt saved to backend successfully!');
+      } catch (error) {
+        console.error('Failed to save quiz attempt:', error);
+        // Continue to results page even if save fails
+      }
+    } else {
+      console.warn('No session ID or user ID - quiz attempt not saved to backend');
+    }
+
     // Navigate to results page with quiz data and user answers
     const resultsData = {
       ...quiz,

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const QuizResultsPage = () => {
   const router = useRouter();
@@ -20,6 +21,20 @@ const QuizResultsPage = () => {
 
   const [loading, setLoading] = useState(false);
   const [expandedQuestion, setExpandedQuestion] = useState(null);
+
+  // Mark that quiz cache needs refresh when results page loads
+  useEffect(() => {
+    const markCacheForRefresh = async () => {
+      try {
+        await AsyncStorage.setItem('quiz_cache_needs_refresh', 'true');
+        console.log('Marked quiz cache for refresh');
+      } catch (error) {
+        console.error('Failed to mark cache for refresh:', error);
+      }
+    };
+
+    markCacheForRefresh();
+  }, []);
 
   if (!quiz) {
     return (
