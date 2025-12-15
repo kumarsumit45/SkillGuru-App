@@ -278,29 +278,162 @@ export async function fetchLiveQuizLeaderboard(quizId, { limit, sessionId, inclu
   }
 }
 
-export async function fetchUserQuizAttempts(userId, { limit = 50, includeQuestions = true } = {}) {
+/**
+ * Fetch user's quiz attempts with optional questions and answers
+ * @param {string} userId - The user ID
+ * @param {Object} options - Fetch options
+ * @param {number} options.limit - Maximum number of attempts to fetch (default: 50)
+ * @param {boolean} options.includeQuestions - Whether to include quiz questions (default: true)
+ * @param {boolean} options.includeAnswers - Whether to include user's answers (default: true)
+ * @returns {Promise<Array>} Array of quiz attempts
+ */
+export async function fetchUserQuizAttempts(userId, { limit = 50, includeQuestions = true, includeAnswers = true } = {}) {
   if (!userId) return [];
-  const query = buildQueryString({ limit, includeQuestions });
+
+  // Build query string with all parameters
+  const query = buildQueryString({
+    limit,
+    includeQuestions,
+    includeAnswers
+  });
+
+  console.log(`[liveQuizApi] Fetching attempts for user ${userId}`);
+  console.log(`[liveQuizApi] Query params: limit=${limit}, includeQuestions=${includeQuestions}, includeAnswers=${includeAnswers}`);
+  console.log(`[liveQuizApi] Full URL: ${LIVE_QUIZ_BASE}/results/user/${userId}${query}`);
+
   try {
     const response = await fetch(`${LIVE_QUIZ_BASE}/results/user/${userId}${query}`);
     const data = await parseApiResponse(response);
+
+    console.log('[liveQuizApi] Raw API response:', data);
+
+    // Extract attempts array from various possible response formats
+    let attempts = [];
     if (Array.isArray(data?.attempts)) {
-      return data.attempts;
+      attempts = data.attempts;
+    } else if (Array.isArray(data?.items)) {
+      attempts = data.items;
+    } else if (Array.isArray(data?.results)) {
+      attempts = data.results;
+    } else if (Array.isArray(data)) {
+      attempts = data;
     }
-    if (Array.isArray(data?.items)) {
-      return data.items;
+
+    console.log(`[liveQuizApi] Returning ${attempts.length} attempts`);
+    if (attempts.length > 0) {
+      console.log('[liveQuizApi] First attempt structure:', attempts[0]);
+      console.log('[liveQuizApi] First attempt has answers?', attempts[0]?.answers ? 'Yes' : 'No');
+      console.log('[liveQuizApi] First attempt has questions?', attempts[0]?.questions ? 'Yes' : 'No');
     }
-    if (Array.isArray(data?.results)) {
-      return data.results;
-    }
-    if (Array.isArray(data)) {
-      return data;
-    }
-    return [];
+
+    return attempts;
   } catch (error) {
     console.warn('[liveQuizApi] Failed to fetch attempts:', error.message);
     return [];
   }
+}
+
+/**
+ * Fetch a specific quiz attempt result by attempt/session ID
+ * @param {string} attemptId - The attempt/session ID
+ * @param {Object} options - Additional options
+ * @param {boolean} options.includeAnswers - Whether to include user answers (default: true)
+ * @returns {Promise<Object>} The attempt details with questions and answers
+ */
+export async function fetchQuizAttemptById(attemptId, { includeAnswers = true } = {}) {
+  if (!attemptId) throw new Error('attemptId is required');
+
+  console.log('\n[fetchQuizAttemptById] Fetching attempt result...');
+  console.log('[fetchQuizAttemptById] Attempt ID:', attemptId);
+  console.log('[fetchQuizAttemptById] Include Answers:', includeAnswers);
+
+  try {
+    const query = buildQueryString({ includeAnswers });
+    const url = `${LIVE_QUIZ_BASE}/results/${attemptId}${query}`;
+    console.log('[fetchQuizAttemptById] URL:', url);
+
+    const response = await fetch(url);
+    console.log('[fetchQuizAttemptById] Response status:', response.status);
+
+    const data = await parseApiResponse(response);
+    console.log('[fetchQuizAttemptById] Response data:', JSON.stringify(data, null, 2));
+    console.log('[fetchQuizAttemptById] Has answers?', data?.answers ? 'Yes' : 'No');
+
+    return data;
+  } catch (error) {
+    console.warn('[fetchQuizAttemptById] Failed to fetch attempt by ID:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch user's answers for a specific quiz attempt
+ * Tries multiple possible API endpoints to find where answers are stored
+ * @param {string} attemptId - The attempt/session ID
+ * @param {string} quizId - The quiz ID (optional, used for fallback endpoints)
+ * @returns {Promise<Array>} Array of user answers
+ */
+export async function fetchAttemptAnswers(attemptId, quizId = null) {
+  if (!attemptId) throw new Error('attemptId is required');
+
+  console.log('\n[fetchAttemptAnswers] Trying multiple endpoints to find answers...');
+  console.log('[fetchAttemptAnswers] Attempt ID:', attemptId);
+  console.log('[fetchAttemptAnswers] Quiz ID:', quizId);
+
+  // List of possible API endpoints where answers might be stored
+  const possibleEndpoints = [
+    `${LIVE_QUIZ_BASE}/results/${attemptId}/answers`,
+    `${LIVE_QUIZ_BASE}/results/${attemptId}`,
+    `${LIVE_QUIZ_BASE}/sessions/${attemptId}/answers`,
+    `${LIVE_QUIZ_BASE}/sessions/${attemptId}`,
+    `${LIVE_QUIZ_BASE}/attempts/${attemptId}/answers`,
+    `${LIVE_QUIZ_BASE}/attempts/${attemptId}`,
+  ];
+
+  // If quizId is provided, add more endpoints
+  if (quizId) {
+    possibleEndpoints.push(
+      `${LIVE_QUIZ_BASE}/${quizId}/session/${attemptId}/answers`,
+      `${LIVE_QUIZ_BASE}/${quizId}/sessions/${attemptId}/answers`,
+      `${LIVE_QUIZ_BASE}/${quizId}/attempts/${attemptId}/answers`
+    );
+  }
+
+  // Try each endpoint
+  for (const endpoint of possibleEndpoints) {
+    try {
+      console.log(`[fetchAttemptAnswers] Trying: ${endpoint}`);
+      const response = await fetch(endpoint);
+
+      // Check if response is successful
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[fetchAttemptAnswers] ✅ SUCCESS at: ${endpoint}`);
+        console.log(`[fetchAttemptAnswers] Response:`, data);
+
+        // Extract answers from various possible formats
+        const answers = data?.answers || data?.userAnswers || data?.responses || data?.submissions;
+
+        if (answers && (Array.isArray(answers) || typeof answers === 'object')) {
+          console.log(`[fetchAttemptAnswers] ✅ Found answers!`, answers);
+          return Array.isArray(answers) ? answers : [answers];
+        }
+
+        // If the whole response looks like answers array
+        if (Array.isArray(data)) {
+          console.log(`[fetchAttemptAnswers] ✅ Response is an array, treating as answers`);
+          return data;
+        }
+      } else {
+        console.log(`[fetchAttemptAnswers] ❌ Failed (${response.status}): ${endpoint}`);
+      }
+    } catch (error) {
+      console.log(`[fetchAttemptAnswers] ❌ Error at ${endpoint}:`, error.message);
+    }
+  }
+
+  console.warn('[fetchAttemptAnswers] ⚠️ No answers found in any endpoint');
+  return [];
 }
 
 export async function fetchDailyWinners(date, includeDetails = true) {

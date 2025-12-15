@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchDailyWinners, fetchLiveQuizById, fetchLiveQuizzesOnly, fetchPracticeQuizzes, fetchUpcomingQuizzes, fetchUserQuizAttempts } from '../../../api/liveQuizApi';
+import { fetchDailyWinners, fetchLiveQuizzesOnly, fetchPracticeQuizzes, fetchUpcomingQuizzes, fetchUserQuizAttempts } from '../../../api/liveQuizApi';
 import FloatingFilter from "../../../components/floatingFilters";
 import QuizCard from "../../../components/quizCard";
 import WinnerCard from "../../../components/winnerCard";
@@ -300,7 +300,7 @@ const QuizArenaScreen = () => {
           console.error('Error fetching practice quizzes:', err);
           return { items: [] };
         }),
-        uid ? fetchUserQuizAttempts(uid, { limit: 50, includeQuestions: false }).catch(err => {
+        uid ? fetchUserQuizAttempts(uid, { limit: 50, includeQuestions: false, includeAnswers: false }).catch(err => {
           console.error('Error fetching attempted quizzes:', err);
           return [];
         }) : Promise.resolve([])
@@ -549,98 +549,15 @@ const QuizArenaScreen = () => {
           }
         });
       } else if (selectedQuiz.category === 'attempted') {
-        // Navigate to results page for attempted quiz
-        setLoading(true);
-        try {
-          console.log('Loading attempted quiz results for:', quizId);
-
-          let quizQuestions = [];
-          let quizMetadata = null;
-
-          // First, check if the attempted quiz already has questions embedded
-          if (selectedQuiz.questions && Array.isArray(selectedQuiz.questions) && selectedQuiz.questions.length > 0) {
-            console.log('Using questions from attempted quiz data');
-            quizQuestions = selectedQuiz.questions;
-            quizMetadata = selectedQuiz.quiz_metadata;
-          } else {
-            // Try to fetch from live quiz endpoint with timeout
-            console.log('Fetching questions from live quiz endpoint');
-            try {
-              const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Timeout')), 5000)
-              );
-              const fetchPromise = fetchLiveQuizById(quizId);
-
-              const quizData = await Promise.race([fetchPromise, timeoutPromise]);
-              if (quizData && quizData.questions && quizData.questions.length > 0) {
-                quizQuestions = quizData.questions;
-                quizMetadata = quizData.quiz_metadata;
-              }
-            } catch (fetchError) {
-              console.warn('Could not fetch from live quiz endpoint:', fetchError.message);
-              // Quiz might be expired, continue without questions if we have answer data
-            }
+        // Navigate to AttemptedResultsPage which will fetch quiz questions and user answers
+        // quizId is actually the attempt ID (the 'id' field from fetchUserQuizAttempts response)
+        console.log('Navigating to attempted results for attempt:', quizId);
+        router.push({
+          pathname: '/screens/AttemptedResultsPage',
+          params: {
+            attemptId: quizId
           }
-
-          // If we still don't have questions, check if we can reconstruct from answers
-          if (quizQuestions.length === 0 && selectedQuiz.answers && Array.isArray(selectedQuiz.answers)) {
-            console.warn('No questions found, but we have answer data. Quiz might be expired.');
-            alert('This quiz has expired and detailed results are no longer available. Only your score is shown.');
-            setLoading(false);
-            return;
-          }
-
-          if (quizQuestions.length === 0) {
-            console.error('Could not load quiz questions for attempted quiz');
-            alert('Unable to load quiz details. The quiz may have been removed.');
-            setLoading(false);
-            return;
-          }
-
-          // Prepare complete quiz data for results page
-          const resultsData = {
-            ...selectedQuiz,
-            questions: quizQuestions,
-            quiz_metadata: quizMetadata,
-          };
-
-          // Convert user answers to the format expected by results page
-          // Results page expects: { 0: 'A', 1: 'B', 2: 'C', ... }
-          let userAnswersFormatted = {};
-
-          if (selectedQuiz.userAnswers && typeof selectedQuiz.userAnswers === 'object') {
-            // Already in correct format
-            userAnswersFormatted = selectedQuiz.userAnswers;
-          } else if (selectedQuiz.answers && Array.isArray(selectedQuiz.answers)) {
-            // Convert from array format: [{ questionId, selectedOption }, ...]
-            selectedQuiz.answers.forEach((answer, index) => {
-              if (answer.selectedOption) {
-                userAnswersFormatted[index] = answer.selectedOption;
-              }
-            });
-          }
-
-          console.log('Navigating to results with:', {
-            quizId,
-            questionsCount: quizQuestions.length,
-            answersCount: Object.keys(userAnswersFormatted).length,
-            userAnswers: userAnswersFormatted,
-          });
-
-          setLoading(false);
-
-          router.push({
-            pathname: '/screens/QuizResultsPage',
-            params: {
-              quiz: JSON.stringify(resultsData),
-              userAnswers: JSON.stringify(userAnswersFormatted),
-            },
-          });
-        } catch (error) {
-          console.error('Error navigating to results:', error);
-          setLoading(false);
-          alert('Failed to load quiz results. Please try again.');
-        }
+        });
       } else if (selectedQuiz.category === 'winner') {
         // console.log('View Winners for quiz:', quizId);
         // Navigate to winners page when ready
