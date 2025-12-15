@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -20,6 +20,37 @@ import FloatingFilter from "../../../components/floatingFilters";
 import QuizCard from "../../../components/quizCard";
 import WinnerCard from "../../../components/winnerCard";
 import useAuthStore from '../../../store/authStore';
+
+// Simple cache implementation
+const quizCache = {
+  data: {},
+  timestamps: {},
+  CACHE_DURATION: 3 * 60 * 1000, // 3 minutes - optimized for live quiz updates
+
+  set(key, value) {
+    this.data[key] = value;
+    this.timestamps[key] = Date.now();
+  },
+
+  get(key) {
+    const timestamp = this.timestamps[key];
+    if (!timestamp) return null;
+
+    const age = Date.now() - timestamp;
+    if (age > this.CACHE_DURATION) {
+      delete this.data[key];
+      delete this.timestamps[key];
+      return null;
+    }
+
+    return this.data[key];
+  },
+
+  clear() {
+    this.data = {};
+    this.timestamps = {};
+  }
+};
 
 // Transform API response to match QuizCard expected format
 const transformQuizData = (quiz, category) => {
@@ -226,84 +257,100 @@ const QuizArenaScreen = () => {
     date: null
   });
 
-  // Fetch all quizzes when language changes
-  useEffect(() => {
-    const fetchAllQuizzes = async () => {
-      setLoading(true);
-      setError(null);
+  // Debounced fetch function
+  const fetchAllQuizzes = useCallback(async (forceRefresh = false) => {
+    setLoading(true);
+    setError(null);
 
-      try {
-        // Convert language to proper format for API (capitalize first letter)
-        let language = selectedLanguage === 'ALL'
-          ? undefined
-          : selectedLanguage.charAt(0) + selectedLanguage.slice(1).toLowerCase(); // "ENGLISH" -> "English"
+    try {
+      // Convert language to proper format for API (capitalize first letter)
+      let language = selectedLanguage === 'ALL'
+        ? undefined
+        : selectedLanguage.charAt(0) + selectedLanguage.slice(1).toLowerCase(); // "ENGLISH" -> "English"
 
-        // console.log('Fetching quizzes with language:', language);
+      const cacheKey = `quizzes_${language || 'all'}_${uid || 'guest'}`;
 
-        // Fetch all categories in parallel
-        const [liveData, upcomingData, practiceData, attemptedData] = await Promise.all([
-          fetchLiveQuizzesOnly({ language }).catch(err => {
-            console.error('Error fetching live quizzes:', err);
-            return [];
-          }),
-          fetchUpcomingQuizzes({ language }).catch(err => {
-            console.error('Error fetching upcoming quizzes:', err);
-            return [];
-          }),
-          fetchPracticeQuizzes({ language, limit: 100, fetchAll: true }).catch(err => {
-            console.error('Error fetching practice quizzes:', err);
-            return { items: [] };
-          }),
-          uid ? fetchUserQuizAttempts(uid, { limit: 100, includeQuestions: true }).catch(err => {
-            console.error('Error fetching attempted quizzes:', err);
-            return [];
-          }) : Promise.resolve([])
-        ]);
-
-        // Transform data for each category and filter out quizzes with 0 questions
-        const transformedLive = liveData
-          .map(quiz => transformQuizData(quiz, 'live'))
-          .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
-        const transformedUpcoming = upcomingData
-          .map(quiz => transformQuizData(quiz, 'upcoming'))
-          .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
-        const transformedPractice = (practiceData.items || [])
-          .map(quiz => transformQuizData(quiz, 'practice'))
-          .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
-        const transformedAttempted = attemptedData
-          .map(quiz => transformQuizData(quiz, 'attempted'))
-          .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
-
-        setAllQuizzes({
-          live: transformedLive,
-          upcoming: transformedUpcoming,
-          practice: transformedPractice,
-          attempted: transformedAttempted,
-          winner: [] // Placeholder for winner tab
-        });
-
-        // Log counts for debugging
-        // console.log(`Quiz counts for language '${language || 'ALL'}':`, {
-        //   live: transformedLive.length,
-        //   upcoming: transformedUpcoming.length,
-        //   practice: transformedPractice.length,
-        //   attempted: transformedAttempted.length
-        // });
-
-        // Log sample of languages in returned quizzes
-        if (transformedLive.length > 0) {
-          const sampleLanguages = transformedLive.slice(0, 3).map(q => q.language);
-          // console.log('Sample quiz languages:', sampleLanguages);
+      // Check cache first (unless force refresh)
+      if (!forceRefresh) {
+        const cachedData = quizCache.get(cacheKey);
+        if (cachedData) {
+          console.log('Using cached quiz data');
+          setAllQuizzes(cachedData);
+          setLoading(false);
+          return;
         }
-      } catch (err) {
-        console.error('Error fetching quizzes:', err);
-        setError(err.message || 'Failed to fetch quizzes');
-      } finally {
-        setLoading(false);
       }
-    };
 
-    fetchAllQuizzes();
+      console.log('Fetching fresh quiz data...');
+
+      // Optimized: Updated limits with caching for performance
+      const [liveData, upcomingData, practiceData, attemptedData] = await Promise.all([
+        fetchLiveQuizzesOnly({ language, limit: "250" }).catch(err => {
+          console.error('Error fetching live quizzes:', err);
+          return [];
+        }),
+        fetchUpcomingQuizzes({ language, limit: "200" }).catch(err => {
+          console.error('Error fetching upcoming quizzes:', err);
+          return [];
+        }),
+        fetchPracticeQuizzes({ language, limit: 200, page: 1 }).catch(err => {
+          console.error('Error fetching practice quizzes:', err);
+          return { items: [] };
+        }),
+        uid ? fetchUserQuizAttempts(uid, { limit: 50, includeQuestions: false }).catch(err => {
+          console.error('Error fetching attempted quizzes:', err);
+          return [];
+        }) : Promise.resolve([])
+      ]);
+
+      // Transform data for each category and filter out quizzes with 0 questions
+      const transformedLive = liveData
+        .map(quiz => transformQuizData(quiz, 'live'))
+        .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
+      const transformedUpcoming = upcomingData
+        .map(quiz => transformQuizData(quiz, 'upcoming'))
+        .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
+      const transformedPractice = (practiceData.items || [])
+        .map(quiz => transformQuizData(quiz, 'practice'))
+        .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
+      const transformedAttempted = attemptedData
+        .map(quiz => transformQuizData(quiz, 'attempted'))
+        .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
+
+      const quizData = {
+        live: transformedLive,
+        upcoming: transformedUpcoming,
+        practice: transformedPractice,
+        attempted: transformedAttempted,
+        winner: [] // Placeholder for winner tab
+      };
+
+      // Cache the results
+      quizCache.set(cacheKey, quizData);
+
+      setAllQuizzes(quizData);
+
+      console.log(`Quiz counts:`, {
+        live: transformedLive.length,
+        upcoming: transformedUpcoming.length,
+        practice: transformedPractice.length,
+        attempted: transformedAttempted.length
+      });
+    } catch (err) {
+      console.error('Error fetching quizzes:', err);
+      setError(err.message || 'Failed to fetch quizzes');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedLanguage, uid]);
+
+  // Fetch quizzes with debouncing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchAllQuizzes(false);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
   }, [selectedLanguage, uid]);
 
   // Fetch winners data when Winners tab is selected
@@ -481,7 +528,6 @@ const QuizArenaScreen = () => {
         setLoading(true);
         try {
           console.log('Loading attempted quiz results for:', quizId);
-          console.log('Attempted quiz data:', selectedQuiz);
 
           let quizQuestions = [];
           let quizMetadata = null;
@@ -492,10 +538,15 @@ const QuizArenaScreen = () => {
             quizQuestions = selectedQuiz.questions;
             quizMetadata = selectedQuiz.quiz_metadata;
           } else {
-            // Try to fetch from live quiz endpoint
+            // Try to fetch from live quiz endpoint with timeout
             console.log('Fetching questions from live quiz endpoint');
             try {
-              const quizData = await fetchLiveQuizById(quizId);
+              const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Timeout')), 5000)
+              );
+              const fetchPromise = fetchLiveQuizById(quizId);
+
+              const quizData = await Promise.race([fetchPromise, timeoutPromise]);
               if (quizData && quizData.questions && quizData.questions.length > 0) {
                 quizQuestions = quizData.questions;
                 quizMetadata = quizData.quiz_metadata;
@@ -592,65 +643,8 @@ const QuizArenaScreen = () => {
   // Handle pull-to-refresh for all quiz tabs
   const handleRefresh = async () => {
     setRefreshing(true);
-    setError(null);
-
-    try {
-      // Convert language to proper format for API
-      let language = selectedLanguage === 'ALL'
-        ? undefined
-        : selectedLanguage.charAt(0) + selectedLanguage.slice(1).toLowerCase();
-
-      // console.log('Refreshing quizzes with language:', language);
-
-      // Fetch all categories in parallel
-      const [liveData, upcomingData, practiceData, attemptedData] = await Promise.all([
-        fetchLiveQuizzesOnly({ language }).catch(err => {
-          console.error('Error fetching live quizzes:', err);
-          return [];
-        }),
-        fetchUpcomingQuizzes({ language }).catch(err => {
-          console.error('Error fetching upcoming quizzes:', err);
-          return [];
-        }),
-        fetchPracticeQuizzes({ language, limit: 100, fetchAll: true }).catch(err => {
-          console.error('Error fetching practice quizzes:', err);
-          return { items: [] };
-        }),
-        uid ? fetchUserQuizAttempts(uid, { limit: 100, includeQuestions: true }).catch(err => {
-          console.error('Error fetching attempted quizzes:', err);
-          return [];
-        }) : Promise.resolve([])
-      ]);
-
-      // Transform data for each category and filter out quizzes with 0 questions
-      const transformedLive = liveData
-        .map(quiz => transformQuizData(quiz, 'live'))
-        .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
-      const transformedUpcoming = upcomingData
-        .map(quiz => transformQuizData(quiz, 'upcoming'))
-        .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
-      const transformedPractice = (practiceData.items || [])
-        .map(quiz => transformQuizData(quiz, 'practice'))
-        .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
-      const transformedAttempted = attemptedData
-        .map(quiz => transformQuizData(quiz, 'attempted'))
-        .filter(quiz => quiz.questions !== 'N/A' && quiz.questions !== '0' && parseInt(quiz.questions) > 0);
-
-      setAllQuizzes({
-        live: transformedLive,
-        upcoming: transformedUpcoming,
-        practice: transformedPractice,
-        attempted: transformedAttempted,
-        winner: [] // Placeholder for winner tab
-      });
-
-      // console.log('Quizzes refreshed successfully');
-    } catch (err) {
-      console.error('Error refreshing quizzes:', err);
-      setError(err.message || 'Failed to refresh quizzes');
-    } finally {
-      setRefreshing(false);
-    }
+    await fetchAllQuizzes(true); // Force refresh, bypass cache
+    setRefreshing(false);
   };
 
   const formatDisplayDate = (date) => {
@@ -920,6 +914,12 @@ const QuizArenaScreen = () => {
               </Pressable>
             ) : null
           }
+          // Performance optimizations for large datasets
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews={true}
         />
       )}
 
