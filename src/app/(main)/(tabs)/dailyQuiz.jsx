@@ -1,24 +1,24 @@
+import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-  Platform
+  View
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { fetchDailyWinners, fetchLiveQuizById, fetchLiveQuizzesOnly, fetchPracticeQuizzes, fetchUpcomingQuizzes, fetchUserQuizAttempts } from '../../../api/liveQuizApi';
 import FloatingFilter from "../../../components/floatingFilters";
 import QuizCard from "../../../components/quizCard";
 import WinnerCard from "../../../components/winnerCard";
-import { fetchLiveQuizzesOnly, fetchUpcomingQuizzes, fetchUserQuizAttempts, fetchPracticeQuizzes, fetchDailyWinners, fetchLiveQuizById } from '../../../api/liveQuizApi';
 import useAuthStore from '../../../store/authStore';
 
 // Transform API response to match QuizCard expected format
@@ -471,7 +471,7 @@ const QuizArenaScreen = () => {
       if (selectedQuiz.category === 'live' || selectedQuiz.category === 'upcoming' || selectedQuiz.category === 'practice') {
         // Navigate to QuizDetails screen with quiz data
         router.push({
-          pathname: '/(main)/QuizDetails',
+          pathname: '/screens/QuizDetails',
           params: {
             quiz: JSON.stringify(selectedQuiz)
           }
@@ -554,7 +554,7 @@ const QuizArenaScreen = () => {
           setLoading(false);
 
           router.push({
-            pathname: '/(main)/QuizResultsPage',
+            pathname: '/screens/QuizResultsPage',
             params: {
               quiz: JSON.stringify(resultsData),
               userAnswers: JSON.stringify(userAnswersFormatted),

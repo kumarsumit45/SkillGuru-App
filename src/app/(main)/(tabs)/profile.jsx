@@ -233,7 +233,7 @@ const ProfilePage = () => {
           <Text style={styles.userPhone}>{userData.phoneNumber}</Text>
 
           <View style={styles.profileButtons}>
-            <TouchableOpacity style={styles.editButton} onPress={() => router.push('/(main)/EditProfile')}>
+            <TouchableOpacity style={styles.editButton} onPress={() => router.push('/screens/EditProfile')}>
               <Ionicons name="create-outline" size={18} color="#fff" />
               <Text style={styles.editButtonText}>Edit Profile</Text>
             </TouchableOpacity>

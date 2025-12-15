@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { fetchLiveQuizById } from '../api/liveQuizApi';
+import { fetchLiveQuizById } from '../../api/liveQuizApi';
 
 const QuizLivePage = () => {
   const router = useRouter();
@@ -160,7 +160,7 @@ const QuizLivePage = () => {
     };
 
     router.push({
-      pathname: '/QuizResultsPage',
+      pathname: '/screens/QuizResultsPage',
       params: {
         quiz: JSON.stringify(resultsData),
         userAnswers: JSON.stringify(selectedAnswers),
