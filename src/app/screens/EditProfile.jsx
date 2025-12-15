@@ -20,7 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 const EditProfile = () => {
   const router = useRouter();
-  const { uid } = useAuthStore();
+  const { uid, triggerProfileRefresh } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -188,6 +188,7 @@ const EditProfile = () => {
       };
 
       await updateProfileWithAPI(uid, updateData);
+      triggerProfileRefresh();
       Alert.alert('Success', 'Profile updated successfully', [
         {
           text: 'OK',

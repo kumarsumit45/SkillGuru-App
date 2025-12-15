@@ -16,13 +16,20 @@ const ProfilePage = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
-  const { uid, clearAuth } = useAuthStore();
+  const { uid, clearAuth, profileRefreshTrigger } = useAuthStore();
   const router = useRouter();
 
   // Fetch user profile data
   useEffect(() => {
     loadUserProfile();
   }, [uid]);
+
+  // Listen for profile refresh trigger
+  useEffect(() => {
+    if (profileRefreshTrigger > 0) {
+      loadUserProfile();
+    }
+  }, [profileRefreshTrigger]);
 
   const loadUserProfile = async () => {
     if (!uid) {
