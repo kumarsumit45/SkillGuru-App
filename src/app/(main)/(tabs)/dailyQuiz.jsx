@@ -251,7 +251,9 @@ const QuizArenaScreen = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [winnersLoading, setWinnersLoading] = useState(false);
+  const [winnersRefreshing, setWinnersRefreshing] = useState(false);
   const [winnersError, setWinnersError] = useState(null);
+  const [winnersRefreshTrigger, setWinnersRefreshTrigger] = useState(0);
   const [dailyWinnersData, setDailyWinnersData] = useState({
     slots: [],
     totalSlots: 0,
@@ -424,11 +426,12 @@ const QuizArenaScreen = () => {
         setWinnersError(err.message || 'Failed to fetch winners');
       } finally {
         setWinnersLoading(false);
+        setWinnersRefreshing(false);
       }
     };
 
     fetchWinners();
-  }, [selectedCategory, selectedDate]);
+  }, [selectedCategory, selectedDate, winnersRefreshTrigger]);
 
   // Helper function to check if text contains exact match with word boundaries
   const matchesExactly = (text, searchTerm) => {
@@ -658,8 +661,8 @@ const QuizArenaScreen = () => {
   };
 
   const handleRefreshWinners = () => {
-    // Trigger re-fetch by updating a timestamp or directly calling the effect
-    setSelectedDate(new Date(selectedDate.getTime())); // Force re-render
+    setWinnersRefreshing(true);
+    setWinnersRefreshTrigger(prev => prev + 1);
   };
 
   // Handle pull-to-refresh for all quiz tabs
@@ -833,7 +836,7 @@ const QuizArenaScreen = () => {
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
-                refreshing={winnersLoading}
+                refreshing={winnersRefreshing}
                 onRefresh={handleRefreshWinners}
                 colors={['#DC2626']}
                 tintColor="#DC2626"
