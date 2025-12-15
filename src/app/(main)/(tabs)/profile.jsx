@@ -1,15 +1,14 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Share, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { Entypo, Feather, FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
-import React, { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, MaterialIcons, FontAwesome5, Feather,Entypo } from '@expo/vector-icons';
-import COLORS from '../../../constants/colors';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, RefreshControl, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchUserProfile } from '../../../api/profileUserApi';
-import useAuthStore from '../../../store/authStore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '../../../config/firebase';
-import { useRouter } from 'expo-router';
+import useAuthStore from '../../../store/authStore';
 
 const ProfilePage = () => {
   const [copied, setCopied] = useState(false);
@@ -234,7 +233,7 @@ const ProfilePage = () => {
           <Text style={styles.userPhone}>{userData.phoneNumber}</Text>
 
           <View style={styles.profileButtons}>
-            <TouchableOpacity style={styles.editButton}>
+            <TouchableOpacity style={styles.editButton} onPress={() => router.push('/(main)/EditProfile')}>
               <Ionicons name="create-outline" size={18} color="#fff" />
               <Text style={styles.editButtonText}>Edit Profile</Text>
             </TouchableOpacity>
