@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { fetchLiveQuizById, startLiveQuizSession, completeLiveQuizSession } from '../../api/liveQuizApi';
+import { fetchLiveQuizById, startLiveQuizSession, completeLiveQuizSession, submitLiveQuizAnswer } from '../../api/liveQuizApi';
 import useAuthStore from '../../store/authStore';
 
 const QuizLivePage = () => {
@@ -25,6 +25,8 @@ const QuizLivePage = () => {
   const [timeLeft, setTimeLeft] = useState(0); // Quiz duration timer (time limit to complete)
   const [sessionId, setSessionId] = useState(null); // Track quiz session
   const [quizStartTime, setQuizStartTime] = useState(null); // Track when quiz started
+  const [questionStartTime, setQuestionStartTime] = useState(null); // Track time spent on current question
+  const [submittingAnswer, setSubmittingAnswer] = useState(false); // Loading state for answer submission
 
   useEffect(() => {
     if (quiz?.id) {
@@ -34,11 +36,19 @@ const QuizLivePage = () => {
       setTimeLeft(0);
       setSessionId(null);
       setQuizStartTime(null);
+      setQuestionStartTime(Date.now()); // Start tracking first question time
 
       // Load the new quiz data
       loadQuizData();
     }
   }, [quiz?.id]);
+
+  // Track question start time when navigating between questions
+  useEffect(() => {
+    if (quizData?.questions?.length > 0) {
+      setQuestionStartTime(Date.now());
+    }
+  }, [currentQuestionIndex]);
 
   useEffect(() => {
     // Timer countdown
@@ -139,6 +149,8 @@ const QuizLivePage = () => {
     setTimeLeft(0);
     setSessionId(null);
     setQuizStartTime(null);
+    setQuestionStartTime(null);
+    setSubmittingAnswer(false);
 
     router.back();
   };
@@ -161,16 +173,62 @@ const QuizLivePage = () => {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    const currentAnswer = selectedAnswers[currentQuestionIndex];
+    const currentQuestion = quizData?.questions?.[currentQuestionIndex];
+
+    // Calculate time spent on this question
+    const timeSpentSeconds = questionStartTime ? Math.floor((Date.now() - questionStartTime) / 1000) : 0;
+
+    // Submit answer to backend if an answer was selected
+    if (uid && quiz.id && sessionId && currentAnswer && currentQuestion) {
+      try {
+        await submitLiveQuizAnswer({
+          quizId: quiz.id,
+          sessionId: sessionId,
+          questionId: currentQuestion.id || currentQuestion._id || `q_${currentQuestionIndex}`,
+          selectedOption: currentAnswer,
+          timeSpentSeconds: timeSpentSeconds,
+        });
+        console.log(`Answer auto-saved on NEXT: Q${currentQuestionIndex + 1} - ${currentAnswer}`);
+      } catch (error) {
+        console.error('Failed to auto-save answer on NEXT:', error);
+        // Continue anyway - answers are still saved locally
+      }
+    }
+
     const totalQuestions = quizData?.questions?.length || 0;
     if (currentQuestionIndex < totalQuestions - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
 
-  const handleSubmitAnswer = () => {
-    // Save the current answer (already saved in state)
-    console.log('Answer saved:', selectedAnswers[currentQuestionIndex]);
+  const handleSubmitAnswer = async () => {
+    const currentAnswer = selectedAnswers[currentQuestionIndex];
+    const currentQuestion = quizData?.questions?.[currentQuestionIndex];
+
+    // Calculate time spent on this question
+    const timeSpentSeconds = questionStartTime ? Math.floor((Date.now() - questionStartTime) / 1000) : 0;
+
+    // Submit answer to backend in real-time (if session exists and answer is selected)
+    if (uid && quiz.id && sessionId && currentAnswer && currentQuestion) {
+      setSubmittingAnswer(true);
+      try {
+        await submitLiveQuizAnswer({
+          quizId: quiz.id,
+          sessionId: sessionId,
+          questionId: currentQuestion.id || currentQuestion._id || `q_${currentQuestionIndex}`,
+          selectedOption: currentAnswer,
+          timeSpentSeconds: timeSpentSeconds,
+        });
+        console.log(`Answer submitted to backend: Q${currentQuestionIndex + 1} - ${currentAnswer}`);
+      } catch (error) {
+        console.error('Failed to submit answer to backend:', error);
+        // Continue anyway - answers are still saved locally
+      } finally {
+        setSubmittingAnswer(false);
+      }
+    }
 
     const totalQuestions = quizData?.questions?.length || 0;
 
@@ -353,7 +411,7 @@ const QuizLivePage = () => {
                 <View
                   style={[
                     styles.progressBarFill,
-                    { width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%` }
+                    { width: `${(Object.keys(selectedAnswers).length / totalQuestions) * 100}%` }
                   ]}
                 />
               </View>
@@ -456,12 +514,17 @@ const QuizLivePage = () => {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.submitButton}
+                  style={[styles.submitButton, submittingAnswer && styles.submitButtonDisabled]}
                   onPress={handleSubmitAnswer}
+                  disabled={submittingAnswer}
                 >
-                  <Text style={styles.submitButtonText}>
-                    {currentQuestionIndex === totalQuestions - 1 ? 'SUBMIT QUIZ' : 'SUBMIT ANSWER'}
-                  </Text>
+                  {submittingAnswer ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>
+                      {currentQuestionIndex === totalQuestions - 1 ? 'SUBMIT QUIZ' : 'SUBMIT ANSWER'}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </>
@@ -769,6 +832,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 1,
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
   },
 });
 
