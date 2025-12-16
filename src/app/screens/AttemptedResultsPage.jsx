@@ -1,26 +1,4 @@
-/**
- * AttemptedResultsPage
- *
- * Displays detailed results for a quiz attempt, including:
- * - Score and statistics (correct, incorrect, skipped)
- * - User's selected answers vs correct answers
- * - Question-by-question breakdown
- *
- * DATA FLOW:
- * 1. Receives attemptId from navigation params
- * 2. Uses fetchUserQuizAttempts(userId, {includeQuestions: true}) to get:
- *    - Attempt metadata (score, accuracy, stats)
- *    - User's answers array
- *    - Questions (if included)
- * 3. Extracts quizId from attempt data
- * 4. Uses fetchLiveQuizById(quizId) to get complete quiz questions
- * 5. Maps user answers to questions and renders in UI
- *
- * ANSWER SOURCES (in priority order):
- * 1. answers array from fetchUserQuizAttempts response
- * 2. Fallback to fetchAttemptAnswers(attemptId) if needed
- * 3. userAnswers object if available
- */
+
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -35,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchLiveQuizById, fetchUserQuizAttempts, fetchQuizAttemptById, fetchAttemptAnswers } from '../../api/liveQuizApi';
+import { fetchLiveQuizById, fetchUserQuizAttempts } from '../../api/liveQuizApi';
 import useAuthStore from '../../store/authStore';
 
 const AttemptedResultsPage = () => {
@@ -61,92 +39,27 @@ const AttemptedResultsPage = () => {
         return;
       }
 
+      if (!uid) {
+        setError('Please log in to view your results');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        console.log('================================');
         console.log('Fetching attempted quiz results...');
         console.log('Attempt ID:', attemptId);
         console.log('User ID:', uid);
-        console.log('================================');
 
-        // Step 1: Fetch user quiz attempts using fetchUserQuizAttempts
-        let attemptResult = null;
+        // Fetch user quiz attempts using fetchUserQuizAttempts
+        const userAttempts = await fetchUserQuizAttempts(uid, {
+          limit: 100,
+        });
 
-        if (!uid) {
-          setError('Please log in to view your results');
-          setLoading(false);
-          return;
-        }
+        console.log('Total attempts found:', userAttempts.length);
 
-        try {
-          // Fetch user attempts with questions and answers using fetchUserQuizAttempts
-          console.log('📡 Fetching user attempts with includeQuestions=true AND includeAnswers=true...');
-          const userAttempts = await fetchUserQuizAttempts(uid, {
-            limit: 100,
-            includeQuestions: true,
-            includeAnswers: true  // IMPORTANT: Request answers from backend
-          });
-
-          console.log('\n================================');
-          console.log('📡 API RESPONSE FROM fetchUserQuizAttempts');
-          console.log('================================');
-          console.log('Total attempts found:', userAttempts.length);
-          console.log('Full response:', JSON.stringify(userAttempts, null, 2));
-
-          if (userAttempts.length > 0) {
-            console.log('\n--- Sample Attempt Structure ---');
-            console.log('First attempt keys:', Object.keys(userAttempts[0]));
-            console.log('Has "answers" field?', 'answers' in userAttempts[0]);
-            console.log('Has "questions" field?', 'questions' in userAttempts[0]);
-
-            if (userAttempts[0].answers) {
-              console.log('\n✅ ANSWERS FOUND in first attempt!');
-              console.log('Answers type:', Array.isArray(userAttempts[0].answers) ? 'Array' : typeof userAttempts[0].answers);
-              console.log('Answers length:', userAttempts[0].answers.length);
-              console.log('First answer:', userAttempts[0].answers[0]);
-            } else {
-              console.log('\n❌ NO ANSWERS in first attempt');
-              console.log('Available fields:', Object.keys(userAttempts[0]));
-            }
-          }
-          console.log('================================\n');
-
-          // Find the specific attempt by attemptId
-          attemptResult = userAttempts.find(attempt => attempt.id === attemptId);
-
-          if (attemptResult) {
-            console.log('\n✅ Found attempt in user attempts list!');
-            console.log('Attempt Data:', attemptResult);
-            console.log('Has questions?', attemptResult.questions ? 'Yes' : 'No');
-            console.log('Has answers?', attemptResult.answers ? 'Yes' : 'No');
-
-            // Log answers in detail if available
-            if (attemptResult.answers) {
-              console.log('\n👤 User Answers from fetchUserQuizAttempts:');
-              console.log('Answers array:', attemptResult.answers);
-              console.log('Total answers:', attemptResult.answers.length);
-
-              // Log each answer
-              attemptResult.answers.forEach((answer, idx) => {
-                console.log(`Answer ${idx + 1}:`, answer);
-              });
-            }
-          } else {
-            console.warn('⚠️ Attempt not found in user attempts list');
-
-            // Fallback: try fetching by attemptId directly
-            try {
-              console.log('Trying to fetch attempt by ID as fallback...');
-              const directAttempt = await fetchQuizAttemptById(attemptId, { includeAnswers: true });
-              attemptResult = directAttempt;
-              console.log('✓ Fetched attempt directly:', attemptResult);
-            } catch (fallbackError) {
-              console.error('❌ Failed to fetch attempt by ID:', fallbackError.message);
-            }
-          }
-        } catch (error) {
-          console.error('❌ Error in fetching user attempts:', error);
-        }
+        // Find the specific attempt by attemptId
+        const attemptResult = userAttempts.find(attempt => attempt.id === attemptId);
 
         if (!attemptResult) {
           setError('Attempt not found. Please try again.');
@@ -154,7 +67,15 @@ const AttemptedResultsPage = () => {
           return;
         }
 
-        // Step 2: Extract quizId from the attempt result
+        console.log('Found attempt:', attemptResult);
+        console.log('Has questionBreakdown?', attemptResult.questionBreakdown ? 'Yes' : 'No');
+
+        if (attemptResult.questionBreakdown) {
+          console.log('questionBreakdown:', attemptResult.questionBreakdown);
+          console.log('Total answers in breakdown:', attemptResult.questionBreakdown.length);
+        }
+
+        // Extract quizId from the attempt result
         const quizId = attemptResult.quizId;
         if (!quizId) {
           setError('Quiz ID not found in attempt data');
@@ -162,138 +83,47 @@ const AttemptedResultsPage = () => {
           return;
         }
 
-        console.log('\n🎯 Quiz ID from attempt:', quizId);
-
-        // Step 3: Fetch quiz questions using the quizId
+        // Fetch quiz questions using the quizId
         let quizResponse = null;
         try {
           quizResponse = await fetchLiveQuizById(quizId);
-          console.log('✓ Quiz Response:', quizResponse);
+          console.log('Quiz Response:', quizResponse);
         } catch (quizError) {
-          console.warn('⚠️ Failed to fetch quiz by ID:', quizError.message);
-        }
-
-        // Step 4: Get questions from quiz response or attempt result
-        let questions = [];
-        if (quizResponse && quizResponse.questions && quizResponse.questions.length > 0) {
-          questions = quizResponse.questions;
-          console.log('✓ Using questions from quiz response');
-        } else if (attemptResult.questions && attemptResult.questions.length > 0) {
-          questions = attemptResult.questions;
-          console.log('✓ Using questions from attempt result');
-        } else {
-          console.warn('⚠️ No questions found in either response');
+          console.warn('Failed to fetch quiz by ID:', quizError.message);
           setError('Quiz questions not available. The quiz may have expired.');
           setLoading(false);
           return;
         }
 
-        // Step 5: Build complete quiz data
+        // Get questions from quiz response
+        const questions = quizResponse?.questions || [];
+        if (questions.length === 0) {
+          setError('Quiz questions not available.');
+          setLoading(false);
+          return;
+        }
+
+        // Build complete quiz data
         const completeQuizData = {
           id: quizId,
           title: attemptResult.quizTitle || quizResponse?.title || attemptResult.quizLabel || 'Quiz',
           subject: attemptResult.quizSubject || quizResponse?.subject || 'General',
-          language: attemptResult.language || quizResponse?.language || quizResponse?.quiz_metadata?.language || 'English',
+          language: attemptResult.language || quizResponse?.language || 'English',
           duration: quizResponse?.duration || quizResponse?.durationMinutes || 'N/A',
           questions: questions,
           quiz_metadata: quizResponse?.quiz_metadata || {},
         };
 
-        console.log('\n📋 Complete Quiz Data:', completeQuizData);
-        console.log('📊 Total Questions:', questions.length);
-
-        // Step 6: Fetch user answers using attempt ID
-        if (!attemptResult.answers || attemptResult.answers.length === 0) {
-          console.log('\n================================');
-          console.log('🔍 FETCHING ANSWERS USING ATTEMPT ID');
-          console.log('================================');
-          console.log('No answers in user attempts response.');
-          console.log('Trying to fetch answers directly using attempt ID...');
-          console.log('Attempt ID:', attemptId);
-          console.log('================================\n');
-
-          // Method 1: Try fetchQuizAttemptById with includeAnswers=true
-          try {
-            console.log('📡 Method 1: Trying fetchQuizAttemptById...');
-            const attemptWithAnswers = await fetchQuizAttemptById(attemptId, { includeAnswers: true });
-
-            if (attemptWithAnswers?.answers && attemptWithAnswers.answers.length > 0) {
-              attemptResult.answers = attemptWithAnswers.answers;
-              console.log('✅ SUCCESS! Got answers from fetchQuizAttemptById');
-              console.log('Answers count:', attemptWithAnswers.answers.length);
-            } else {
-              console.log('❌ fetchQuizAttemptById returned no answers');
-            }
-          } catch (error) {
-            console.log('❌ fetchQuizAttemptById failed:', error.message);
-          }
-
-          // Method 2: If still no answers, try alternative endpoints
-          if (!attemptResult.answers || attemptResult.answers.length === 0) {
-            console.log('\n📡 Method 2: Trying alternative endpoints...');
-            try {
-              const separateAnswers = await fetchAttemptAnswers(attemptId, quizId);
-              if (separateAnswers && separateAnswers.length > 0) {
-                attemptResult.answers = separateAnswers;
-                console.log('✅ SUCCESS! Got answers from alternative endpoint');
-                console.log('Answers count:', separateAnswers.length);
-              } else {
-                console.log('❌ No answers found in any alternative endpoint');
-              }
-            } catch (answerError) {
-              console.log('❌ Alternative endpoints failed:', answerError.message);
-            }
-          }
-
-          console.log('\n================================');
-          console.log('📊 FINAL STATUS');
-          console.log('================================');
-          console.log('Has answers?', attemptResult.answers ? 'Yes' : 'No');
-          console.log('Answers count:', attemptResult.answers?.length || 0);
-          console.log('================================\n');
-        }
-
-        // Log user answers if available
-        console.log('\n================================');
-        console.log('📝 FINAL ANSWERS DATA');
-        console.log('================================');
-
-        if (attemptResult.answers) {
-          console.log('✅ Answers found in attempt result!');
-          console.log('Raw answers array:', JSON.stringify(attemptResult.answers, null, 2));
-          console.log('📊 Total Answers:', attemptResult.answers.length);
-
-          // Log each answer for debugging
-          console.log('\n📝 Individual Answers:');
-          attemptResult.answers.forEach((answer, idx) => {
-            console.log(`\nAnswer ${idx + 1}:`);
-            console.log('  - Full object:', answer);
-            console.log('  - questionId:', answer.questionId || answer.question_id || answer.qid);
-            console.log('  - selectedOption:', answer.selectedOption || answer.selected_option || answer.userAnswer || answer.user_answer || answer.answer);
-            console.log('  - isCorrect:', answer.isCorrect || answer.is_correct);
-            console.log('  - timeSpent:', answer.timeSpentSeconds || answer.time_spent_seconds);
-          });
-        } else {
-          console.log('❌ No answers found anywhere');
-          console.log('attemptResult.answers:', attemptResult.answers);
-          console.log('\n⚠️ IMPORTANT: The backend does not return user answers.');
-          console.log('This could mean:');
-          console.log('1. Answers are not stored after quiz completion');
-          console.log('2. Answers are stored but not exposed via API');
-          console.log('3. A different API endpoint or authentication is needed');
-        }
-
-        console.log('================================\n');
+        console.log('Complete Quiz Data:', completeQuizData);
+        console.log('Total Questions:', questions.length);
 
         setQuizData(completeQuizData);
         setUserAttemptData(attemptResult);
 
         // Mark cache for refresh
         await AsyncStorage.setItem('quiz_cache_needs_refresh', 'true');
-
-        console.log('================================\n');
       } catch (err) {
-        console.error('❌ Error fetching attempted quiz data:', err);
+        console.error('Error fetching attempted quiz data:', err);
         setError(err.message || 'Failed to load quiz results');
       } finally {
         setLoading(false);
@@ -346,97 +176,44 @@ const AttemptedResultsPage = () => {
     );
   }
 
-  // Process user answers - handle multiple possible formats
+  // Process user answers from questionBreakdown
   const userAnswersMap = {};
+  const questionBreakdown = userAttemptData.questionBreakdown || [];
 
-  console.log('\n================================');
-  console.log('🔍 PROCESSING USER ANSWERS FOR UI');
-  console.log('================================');
-  console.log('Source: fetchUserQuizAttempts');
-  console.log('userAttemptData.answers:', userAttemptData.answers);
-  console.log('Is array?', Array.isArray(userAttemptData.answers));
+  console.log('Processing questionBreakdown...');
+  console.log('Total answers in breakdown:', questionBreakdown.length);
 
-  if (userAttemptData.answers && Array.isArray(userAttemptData.answers)) {
-    console.log('\n✅ Processing answers array from fetchUserQuizAttempts...');
-
-    // Try to match answers with questions
-    const questions = quizData.questions || [];
-    console.log('Total questions available:', questions.length);
-
-    userAttemptData.answers.forEach((answer, index) => {
-      console.log(`\n--- Processing Answer ${index + 1} ---`);
-      console.log('Raw answer object:', answer);
-
-      // Extract selected option from various possible field names
-      const selectedOption =
-        answer.selectedOption ||
-        answer.selected_option ||
-        answer.userAnswer ||
-        answer.user_answer ||
-        answer.answer;
-
-      console.log('Extracted selectedOption:', selectedOption);
-
-      if (selectedOption !== undefined && selectedOption !== null) {
-        // Try to find question index by questionId if available
-        const questionId = answer.questionId || answer.question_id || answer.qid;
-        console.log('Question ID:', questionId);
-
-        if (questionId) {
-          // Find the question index by matching questionId
-          const questionIndex = questions.findIndex(q =>
-            (q.id === questionId || q._id === questionId || q.questionId === questionId)
-          );
-
-          console.log('Found question at index:', questionIndex);
-
-          if (questionIndex !== -1) {
-            userAnswersMap[questionIndex] = selectedOption;
-            console.log(`✅ Mapped to question ${questionIndex + 1} (by ID: ${questionId}): ${selectedOption}`);
-          } else {
-            // If we can't find by ID, use array index
-            userAnswersMap[index] = selectedOption;
-            console.log(`⚠️ Question ID not found, using array index ${index + 1}: ${selectedOption}`);
-          }
-        } else {
-          // No questionId, use array index
-          userAnswersMap[index] = selectedOption;
-          console.log(`📍 No question ID, using array index ${index + 1}: ${selectedOption}`);
-        }
-      } else {
-        console.log('❌ No selected option found for this answer');
-      }
-    });
-  } else if (userAttemptData.userAnswers && typeof userAttemptData.userAnswers === 'object') {
-    console.log('\n✅ Using userAnswers object directly');
-    Object.assign(userAnswersMap, userAttemptData.userAnswers);
-    console.log('userAnswers object:', userAnswersMap);
-  } else {
-    console.log('\n❌ No valid answers data found');
-    console.log('userAttemptData.answers:', userAttemptData.answers);
-    console.log('userAttemptData.userAnswers:', userAttemptData.userAnswers);
-  }
-
-  console.log('\n================================');
-  console.log('📝 FINAL USER ANSWERS MAP (for UI rendering)');
-  console.log('================================');
-  console.log('Answers map:', userAnswersMap);
-  console.log('Total mapped answers:', Object.keys(userAnswersMap).length);
-  console.log('Answer indices:', Object.keys(userAnswersMap));
-  console.log('Answer values:', Object.values(userAnswersMap));
-  console.log('================================\n');
-
-  // Get results from attempt data (preferred) or calculate from answers
+  // Map questionBreakdown to userAnswersMap by matching questionId
   const questions = quizData.questions || [];
+
+  questionBreakdown.forEach((breakdown, index) => {
+    const questionId = breakdown.questionId;
+    const selectedOption = breakdown.selectedOption;
+
+    console.log(`Answer ${index + 1}:`, { questionId, selectedOption, isCorrect: breakdown.isCorrect });
+
+    if (questionId && selectedOption) {
+      // Find the question index by matching questionId
+      const questionIndex = questions.findIndex(q =>
+        (q.id === questionId || q._id === questionId || q.questionId === questionId)
+      );
+
+      if (questionIndex !== -1) {
+        userAnswersMap[questionIndex] = selectedOption;
+        console.log(`Mapped to question ${questionIndex + 1}: ${selectedOption}`);
+      }
+    }
+  });
+
+  console.log('Total mapped answers:', Object.keys(userAnswersMap).length);
+
+  // Get results from attempt data
   const totalQuestions = userAttemptData.totalQuestions || questions.length;
 
-  // Use API response values if available, otherwise calculate
-  let correctCount = userAttemptData.correct !== undefined ? userAttemptData.correct : 0;
-  let incorrectCount = userAttemptData.incorrect !== undefined ? userAttemptData.incorrect : 0;
-  let unattemptedCount = userAttemptData.skipped !== undefined ? userAttemptData.skipped : 0;
-
-  // If we don't have these values from API, calculate them from answers
-  const shouldCalculate = userAttemptData.correct === undefined && Object.keys(userAnswersMap).length > 0;
+  // Use API response values directly
+  const correctCount = userAttemptData.correctCount || 0;
+  const incorrectCount = totalQuestions - correctCount - (questionBreakdown.length < totalQuestions ? totalQuestions - questionBreakdown.length : 0);
+  const unattemptedCount = totalQuestions - questionBreakdown.length;
 
   const questionResults = questions.map((question, index) => {
     const userAnswer = userAnswersMap[index];
@@ -454,40 +231,30 @@ const AttemptedResultsPage = () => {
       }
     }
 
-    // Normalize both answers for comparison
-    const normalizedUserAnswer = userAnswer ? String(userAnswer).trim().toUpperCase() : null;
-    const normalizedCorrectAnswer = correctAnswer ? String(correctAnswer).trim().toUpperCase() : null;
+    // Find the breakdown for this question to get isCorrect status
+    const breakdown = questionBreakdown.find(bd => {
+      const questionId = bd.questionId;
+      return question.id === questionId || question._id === questionId || question.questionId === questionId;
+    });
 
     let status = 'unattempted';
-    if (normalizedUserAnswer) {
-      if (normalizedUserAnswer === normalizedCorrectAnswer) {
-        status = 'correct';
-        if (shouldCalculate) correctCount++;
-      } else {
-        status = 'incorrect';
-        if (shouldCalculate) incorrectCount++;
-      }
-    } else {
-      if (shouldCalculate) unattemptedCount++;
+    if (breakdown) {
+      status = breakdown.isCorrect ? 'correct' : 'incorrect';
     }
 
     return {
       ...question,
       userAnswer,
-      correctAnswer: normalizedCorrectAnswer,
+      correctAnswer,
       status,
       index: index + 1,
     };
   });
 
-  // Get scores from attempt data or calculated values
-  const score = userAttemptData.score !== undefined ? userAttemptData.score : correctCount;
-  const percentage = totalQuestions > 0
-    ? Math.round((correctCount / totalQuestions) * 100)
-    : 0;
-  const accuracy = userAttemptData.accuracy !== undefined
-    ? userAttemptData.accuracy
-    : percentage;
+  // Get scores from attempt data
+  const score = userAttemptData.score || userAttemptData.correctCount || correctCount;
+  const accuracy = userAttemptData.accuracy || (totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0);
+  const percentage = accuracy;
 
   // Get quiz info
   const quizTitle = quizData.title || 'Quiz';
