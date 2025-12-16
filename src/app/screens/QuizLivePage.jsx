@@ -183,14 +183,39 @@ const QuizLivePage = () => {
     // Submit answer to backend if an answer was selected
     if (uid && quiz.id && sessionId && currentAnswer && currentQuestion) {
       try {
+        // Convert letter option (A, B, C, D) to full text for backend
+        let answerText = currentAnswer;
+        if (currentAnswer && currentAnswer.length === 1 && currentQuestion.options) {
+          const optionIndex = currentAnswer.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
+          if (optionIndex >= 0 && optionIndex < currentQuestion.options.length) {
+            const option = currentQuestion.options[optionIndex];
+            answerText = typeof option === 'string' ? option : option.text;
+            console.log(`Converting ${currentAnswer} to full text: ${answerText}`);
+          }
+        }
+
+        // Get the correct questionId - try multiple formats
+        const questionIdForNext = currentQuestion.questionId ||
+                                 currentQuestion.id ||
+                                 currentQuestion._id ||
+                                 `q${currentQuestionIndex + 1}`; // Backend expects q1, q2, q3 format (not q_0)
+
+        console.log(`[NEXT] Submitting answer for question:`, {
+          questionId: questionIdForNext,
+          questionIndex: currentQuestionIndex,
+          hasQuestionId: !!currentQuestion.questionId,
+          hasId: !!currentQuestion.id,
+          has_id: !!currentQuestion._id,
+        });
+
         await submitLiveQuizAnswer({
           quizId: quiz.id,
           sessionId: sessionId,
-          questionId: currentQuestion.id || currentQuestion._id || `q_${currentQuestionIndex}`,
-          selectedOption: currentAnswer,
+          questionId: questionIdForNext,
+          selectedOption: answerText, // Send full text instead of letter
           timeSpentSeconds: timeSpentSeconds,
         });
-        console.log(`Answer auto-saved on NEXT: Q${currentQuestionIndex + 1} - ${currentAnswer}`);
+        console.log(`Answer auto-saved on NEXT: Q${currentQuestionIndex + 1} - ${answerText}`);
       } catch (error) {
         console.error('Failed to auto-save answer on NEXT:', error);
         // Continue anyway - answers are still saved locally
@@ -214,14 +239,39 @@ const QuizLivePage = () => {
     if (uid && quiz.id && sessionId && currentAnswer && currentQuestion) {
       setSubmittingAnswer(true);
       try {
+        // Convert letter option (A, B, C, D) to full text for backend
+        let answerText = currentAnswer;
+        if (currentAnswer && currentAnswer.length === 1 && currentQuestion.options) {
+          const optionIndex = currentAnswer.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
+          if (optionIndex >= 0 && optionIndex < currentQuestion.options.length) {
+            const option = currentQuestion.options[optionIndex];
+            answerText = typeof option === 'string' ? option : option.text;
+            console.log(`Converting ${currentAnswer} to full text: ${answerText}`);
+          }
+        }
+
+        // Get the correct questionId - try multiple formats
+        const questionIdForSubmit = currentQuestion.questionId ||
+                                   currentQuestion.id ||
+                                   currentQuestion._id ||
+                                   `q${currentQuestionIndex + 1}`; // Backend expects q1, q2, q3 format (not q_0)
+
+        console.log(`[SUBMIT] Submitting answer for question:`, {
+          questionId: questionIdForSubmit,
+          questionIndex: currentQuestionIndex,
+          hasQuestionId: !!currentQuestion.questionId,
+          hasId: !!currentQuestion.id,
+          has_id: !!currentQuestion._id,
+        });
+
         await submitLiveQuizAnswer({
           quizId: quiz.id,
           sessionId: sessionId,
-          questionId: currentQuestion.id || currentQuestion._id || `q_${currentQuestionIndex}`,
-          selectedOption: currentAnswer,
+          questionId: questionIdForSubmit,
+          selectedOption: answerText, // Send full text instead of letter
           timeSpentSeconds: timeSpentSeconds,
         });
-        console.log(`Answer submitted to backend: Q${currentQuestionIndex + 1} - ${currentAnswer}`);
+        console.log(`Answer submitted to backend: Q${currentQuestionIndex + 1} - ${answerText}`);
       } catch (error) {
         console.error('Failed to submit answer to backend:', error);
         // Continue anyway - answers are still saved locally
@@ -253,18 +303,31 @@ const QuizLivePage = () => {
       const userAnswer = selectedAnswers[index];
       let correctAnswer = question.correct_answer || question.correctAnswer;
 
-      // Convert correct answer to option letter if needed
+      // Convert user answer from letter (A, B, C, D) to full text for backend
+      let userAnswerText = null;
+      if (userAnswer && userAnswer.length === 1 && question.options) {
+        const optionIndex = userAnswer.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
+        if (optionIndex >= 0 && optionIndex < question.options.length) {
+          const option = question.options[optionIndex];
+          userAnswerText = typeof option === 'string' ? option : option.text;
+        }
+      } else if (userAnswer) {
+        userAnswerText = userAnswer; // If already full text, use as is
+      }
+
+      // Convert correct answer to option letter for comparison
+      let correctAnswerLetter = correctAnswer;
       if (correctAnswer && question.options) {
         const correctIndex = question.options.findIndex(option => {
           const optionText = typeof option === 'string' ? option : option.text;
           return optionText === correctAnswer;
         });
         if (correctIndex !== -1) {
-          correctAnswer = String.fromCharCode(65 + correctIndex);
+          correctAnswerLetter = String.fromCharCode(65 + correctIndex);
         }
       }
 
-      const isCorrect = userAnswer && userAnswer === correctAnswer;
+      const isCorrect = userAnswer && userAnswer === correctAnswerLetter;
       if (userAnswer) {
         if (isCorrect) {
           correctCount++;
@@ -275,9 +338,17 @@ const QuizLivePage = () => {
         unattemptedCount++;
       }
 
+      // Get the correct questionId for this question
+      const questionId = question.questionId ||
+                        question.id ||
+                        question._id ||
+                        `q${index + 1}`; // Backend expects q1, q2, q3 format (not q_0)
+
+      console.log(`Q${index + 1}: User answered ${userAnswer} (${userAnswerText}) - Correct: ${correctAnswerLetter} - isCorrect: ${isCorrect} - questionId: ${questionId}`);
+
       return {
-        questionId: question.id || question._id || `q_${index}`,
-        selectedOption: userAnswer || null,
+        questionId: questionId,
+        selectedOption: userAnswerText, // Send full text to backend
         isCorrect: isCorrect,
       };
     });
@@ -288,7 +359,7 @@ const QuizLivePage = () => {
     // Submit quiz session to backend (if session exists)
     if (uid && quiz.id && sessionId) {
       try {
-        await completeLiveQuizSession({
+        const submissionData = {
           quizId: quiz.id,
           sessionId: sessionId,
           answers: answersArray,
@@ -302,14 +373,26 @@ const QuizLivePage = () => {
             timeSpentSeconds: timeSpentSeconds,
             completedAt: new Date().toISOString(),
           },
-        });
-        console.log('Quiz attempt saved to backend successfully!');
+        };
+
+        console.log('\n========================================');
+        console.log('📤 SUBMITTING QUIZ TO BACKEND');
+        console.log('========================================');
+        console.log('Quiz ID:', quiz.id);
+        console.log('Session ID:', sessionId);
+        console.log('Total Answers:', answersArray.length);
+        console.log('Summary:', submissionData.summary);
+        console.log('Sample answers:', answersArray.slice(0, 3));
+        console.log('========================================\n');
+
+        await completeLiveQuizSession(submissionData);
+        console.log('✅ Quiz attempt saved to backend successfully!');
       } catch (error) {
-        console.error('Failed to save quiz attempt:', error);
+        console.error('❌ Failed to save quiz attempt:', error);
         // Continue to results page even if save fails
       }
     } else {
-      console.warn('No session ID or user ID - quiz attempt not saved to backend');
+      console.warn('⚠️ No session ID or user ID - quiz attempt not saved to backend');
     }
 
     // Navigate to results page with quiz data and user answers
