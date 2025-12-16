@@ -204,30 +204,110 @@ const AttemptedResultsPage = () => {
 
         // If selectedOption is full text (not a single letter), convert to letter (A, B, C, D)
         if (selectedOption.length > 1 && question.options) {
-          console.log(`Converting full text answer "${selectedOption}" to letter option...`);
+          console.log(`\n🔍 Converting full text answer to letter option:`);
+          console.log(`   User's answer: "${selectedOption}"`);
+          console.log(`   Available options:`, question.options.map((opt, i) => `${String.fromCharCode(65 + i)}: "${typeof opt === 'string' ? opt : opt.text}"`));
 
-          // Find which option matches the selected text
-          const matchingOptionIndex = question.options.findIndex(option => {
+          let matchingOptionIndex = -1;
+
+          // STRATEGY 1: Exact match (case-sensitive)
+          matchingOptionIndex = question.options.findIndex(option => {
             const optionText = typeof option === 'string' ? option : option.text;
-            // Compare trimmed lowercase versions for better matching
-            return optionText?.trim().toLowerCase() === selectedOption.trim().toLowerCase();
+            return optionText === selectedOption;
           });
 
           if (matchingOptionIndex !== -1) {
+            console.log(`   ✅ Strategy 1 (Exact match): Found at index ${matchingOptionIndex}`);
+          }
+
+          // STRATEGY 2: Case-insensitive trimmed match
+          if (matchingOptionIndex === -1) {
+            matchingOptionIndex = question.options.findIndex(option => {
+              const optionText = typeof option === 'string' ? option : option.text;
+              return optionText?.trim().toLowerCase() === selectedOption.trim().toLowerCase();
+            });
+
+            if (matchingOptionIndex !== -1) {
+              console.log(`   ✅ Strategy 2 (Case-insensitive): Found at index ${matchingOptionIndex}`);
+            }
+          }
+
+          // STRATEGY 3: Normalized match (remove extra spaces, punctuation)
+          if (matchingOptionIndex === -1) {
+            const normalizeText = (text) => {
+              return text
+                .toLowerCase()
+                .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+                .replace(/[.,;:!?'"()[\]{}]/g, '')  // Remove punctuation
+                .trim();
+            };
+
+            const normalizedSelected = normalizeText(selectedOption);
+            matchingOptionIndex = question.options.findIndex(option => {
+              const optionText = typeof option === 'string' ? option : option.text;
+              return normalizeText(optionText) === normalizedSelected;
+            });
+
+            if (matchingOptionIndex !== -1) {
+              console.log(`   ✅ Strategy 3 (Normalized): Found at index ${matchingOptionIndex}`);
+            }
+          }
+
+          // STRATEGY 4: Partial match (contains)
+          if (matchingOptionIndex === -1) {
+            matchingOptionIndex = question.options.findIndex(option => {
+              const optionText = typeof option === 'string' ? option : option.text;
+              return optionText?.toLowerCase().includes(selectedOption.toLowerCase()) ||
+                     selectedOption.toLowerCase().includes(optionText?.toLowerCase());
+            });
+
+            if (matchingOptionIndex !== -1) {
+              console.log(`   ⚠️ Strategy 4 (Partial match): Found at index ${matchingOptionIndex}`);
+            }
+          }
+
+          if (matchingOptionIndex !== -1) {
             optionLetter = String.fromCharCode(65 + matchingOptionIndex); // 0->A, 1->B, 2->C, 3->D
-            console.log(`✅ Converted to option ${optionLetter}`);
+            console.log(`   ✅ Final result: Converted to option ${optionLetter}`);
           } else {
-            console.log(`⚠️ Could not find matching option, keeping original text`);
+            console.log(`   ❌ No match found! Keeping original text: "${selectedOption}"`);
+            console.log(`   This answer will be displayed as text instead of a letter.`);
           }
         }
 
         userAnswersMap[questionIndex] = optionLetter;
-        console.log(`✅ Mapped to question ${questionIndex + 1}: ${optionLetter}`);
+        console.log(`✅ Mapped to question ${questionIndex + 1}: ${optionLetter}\n`);
+      } else {
+        console.log(`⚠️ Could not find matching question for questionId: ${questionId}`);
       }
     }
   });
 
-  console.log('Total mapped answers:', Object.keys(userAnswersMap).length);
+  // Summary of answer mapping
+  console.log('\n========================================');
+  console.log('📊 ANSWER MAPPING SUMMARY');
+  console.log('========================================');
+  console.log(`Total answers in breakdown: ${questionBreakdown.length}`);
+  console.log(`Total questions in quiz: ${questions.length}`);
+  console.log(`Successfully mapped answers: ${Object.keys(userAnswersMap).length}`);
+
+  // Check for failed mappings
+  const failedMappings = questionBreakdown.filter((bd, idx) => {
+    const questionIndex = questions.findIndex(q =>
+      (q.id === bd.questionId || q._id === bd.questionId || q.questionId === bd.questionId)
+    );
+    return questionIndex === -1 || !userAnswersMap[questionIndex] || userAnswersMap[questionIndex].length > 1;
+  });
+
+  if (failedMappings.length > 0) {
+    console.log(`⚠️ Failed to map ${failedMappings.length} answers:`);
+    failedMappings.forEach((bd, idx) => {
+      console.log(`   - questionId: ${bd.questionId}, answer: "${bd.selectedOption}"`);
+    });
+  } else {
+    console.log(`✅ All answers mapped successfully!`);
+  }
+  console.log('========================================\n');
 
   // Get results from attempt data
   const totalQuestions = userAttemptData.totalQuestions || questions.length;
@@ -536,6 +616,16 @@ const AttemptedResultsPage = () => {
                       {question.question_text || question.questionText || question.text}
                     </Text>
 
+                    {/* Show warning if answer is full text (couldn't be matched) */}
+                    {question.userAnswer && question.userAnswer.length > 1 && (
+                      <View style={styles.warningBox}>
+                        <Text style={styles.warningIcon}>⚠️</Text>
+                        <Text style={styles.warningText}>
+                          Your answer: "{question.userAnswer}" (Could not match to option letter)
+                        </Text>
+                      </View>
+                    )}
+
                     {/* Options */}
                     <View style={styles.optionsList}>
                       {question.options?.map((option, optionIdx) => {
@@ -543,13 +633,19 @@ const AttemptedResultsPage = () => {
                         const isUserAnswer = question.userAnswer === optionKey;
                         const isCorrectAnswer = question.correctAnswer === optionKey;
 
+                        // Also check if user answer is the full text that matches this option
+                        const optionText = (typeof option === 'string' ? option : option.text) || '';
+                        const isUserAnswerFullText = question.userAnswer &&
+                                                     question.userAnswer.length > 1 &&
+                                                     optionText.toLowerCase().trim() === question.userAnswer.toLowerCase().trim();
+
                         let optionStyle = styles.option;
                         let optionTextStyle = styles.optionText;
 
                         if (isCorrectAnswer) {
                           optionStyle = [styles.option, styles.optionCorrect];
                           optionTextStyle = [styles.optionText, styles.optionTextCorrect];
-                        } else if (isUserAnswer && !isCorrectAnswer) {
+                        } else if ((isUserAnswer || isUserAnswerFullText) && !isCorrectAnswer) {
                           optionStyle = [styles.option, styles.optionIncorrect];
                           optionTextStyle = [styles.optionText, styles.optionTextIncorrect];
                         }
@@ -561,7 +657,7 @@ const AttemptedResultsPage = () => {
                             {isCorrectAnswer && (
                               <Text style={styles.correctBadge}>✓ Correct</Text>
                             )}
-                            {isUserAnswer && !isCorrectAnswer && (
+                            {(isUserAnswer || isUserAnswerFullText) && !isCorrectAnswer && (
                               <Text style={styles.incorrectBadge}>✗ Your Answer</Text>
                             )}
                           </View>
