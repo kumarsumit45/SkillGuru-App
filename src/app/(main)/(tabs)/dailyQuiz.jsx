@@ -277,14 +277,12 @@ const QuizArenaScreen = () => {
       if (!forceRefresh) {
         const cachedData = quizCache.get(cacheKey);
         if (cachedData) {
-          console.log('Using cached quiz data');
           setAllQuizzes(cachedData);
           setLoading(false);
           return;
         }
       }
 
-      console.log('Fetching fresh quiz data...');
 
       // Optimized: Updated limits with caching for performance
       const [liveData, upcomingData, practiceData, attemptedData] = await Promise.all([
@@ -333,12 +331,7 @@ const QuizArenaScreen = () => {
 
       setAllQuizzes(quizData);
 
-      console.log(`Quiz counts:`, {
-        live: transformedLive.length,
-        upcoming: transformedUpcoming.length,
-        practice: transformedPractice.length,
-        attempted: transformedAttempted.length
-      });
+     
     } catch (err) {
       console.error('Error fetching quizzes:', err);
       setError(err.message || 'Failed to fetch quizzes');
@@ -363,7 +356,6 @@ const QuizArenaScreen = () => {
         try {
           const needsRefresh = await AsyncStorage.getItem('quiz_cache_needs_refresh');
           if (needsRefresh === 'true') {
-            console.log('Cache refresh flag detected, clearing cache and refetching...');
             quizCache.clear();
             await AsyncStorage.removeItem('quiz_cache_needs_refresh');
             await fetchAllQuizzes(true); // Force refresh
@@ -388,10 +380,8 @@ const QuizArenaScreen = () => {
       try {
         // Format date as YYYY-MM-DD
         const formattedDate = selectedDate.toISOString().split('T')[0];
-        // console.log('Fetching winners for date:', formattedDate);
 
         const data = await fetchDailyWinners(formattedDate, true);
-        // console.log('Winners data received:', data);
 
         // Transform the data to match our component structure
         // Filter out slots with no winners and flatten the structure
@@ -551,7 +541,6 @@ const QuizArenaScreen = () => {
       } else if (selectedQuiz.category === 'attempted') {
         // Navigate to AttemptedResultsPage which will fetch quiz questions and user answers
         // quizId is actually the attempt ID (the 'id' field from fetchUserQuizAttempts response)
-        console.log('Navigating to attempted results for attempt:', quizId);
         router.push({
           pathname: '/screens/AttemptedResultsPage',
           params: {
