@@ -12,7 +12,6 @@ export const fetchUserProfile = async (uid) => {
 
   try {
     const url = `${API_BASE_URL}/currentuser/currentuser/${uid}`;
-    console.log('[profileUserApi] Fetching profile from:', url);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -21,7 +20,6 @@ export const fetchUserProfile = async (uid) => {
       },
     });
 
-    console.log('[profileUserApi] Response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -30,7 +28,6 @@ export const fetchUserProfile = async (uid) => {
     }
 
     const data = await response.json();
-    console.log('[profileUserApi] Response data:', JSON.stringify(data, null, 2));
 
     return data.user || data;
   } catch (error) {
@@ -52,8 +49,6 @@ export const updateUserProfile = async (uid, profileData) => {
 
   try {
     const url = `${API_BASE_URL}/currentuser/currentuser/${uid}`;
-    console.log('[profileUserApi] Updating profile at:', url);
-    console.log('[profileUserApi] Profile data:', JSON.stringify(profileData, null, 2));
 
     const response = await fetch(url, {
       method: 'PUT',
@@ -63,7 +58,6 @@ export const updateUserProfile = async (uid, profileData) => {
       body: JSON.stringify(profileData),
     });
 
-    console.log('[profileUserApi] Update response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -72,7 +66,6 @@ export const updateUserProfile = async (uid, profileData) => {
     }
 
     const data = await response.json();
-    console.log('[profileUserApi] Update response data:', JSON.stringify(data, null, 2));
 
     return data.user || data;
   } catch (error) {

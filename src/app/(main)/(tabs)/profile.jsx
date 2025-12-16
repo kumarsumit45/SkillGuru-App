@@ -40,7 +40,6 @@ const ProfilePage = () => {
     try {
       setError(null);
       const profileData = await fetchUserProfile(uid);
-      console.log('Profile data from API:', profileData);
 
       // Map actual API response fields with defaults for Performance Overview
       const transformedData = {

@@ -297,15 +297,13 @@ export async function fetchUserQuizAttempts(userId, { limit = 50, includeQuestio
     includeAnswers
   });
 
-  console.log(`[liveQuizApi] Fetching attempts for user ${userId}`);
-  console.log(`[liveQuizApi] Query params: limit=${limit}, includeQuestions=${includeQuestions}, includeAnswers=${includeAnswers}`);
-  console.log(`[liveQuizApi] Full URL: ${LIVE_QUIZ_BASE}/results/user/${userId}${query}`);
+
 
   try {
     const response = await fetch(`${LIVE_QUIZ_BASE}/results/user/${userId}${query}`);
     const data = await parseApiResponse(response);
 
-    console.log('[liveQuizApi] Raw API response:', data);
+    // console.log('[liveQuizApi] Raw API response:', data);
 
     // Extract attempts array from various possible response formats
     let attempts = [];
@@ -319,11 +317,10 @@ export async function fetchUserQuizAttempts(userId, { limit = 50, includeQuestio
       attempts = data;
     }
 
-    console.log(`[liveQuizApi] Returning ${attempts.length} attempts`);
     if (attempts.length > 0) {
-      console.log('[liveQuizApi] First attempt structure:', attempts[0]);
-      console.log('[liveQuizApi] First attempt has answers?', attempts[0]?.answers ? 'Yes' : 'No');
-      console.log('[liveQuizApi] First attempt has questions?', attempts[0]?.questions ? 'Yes' : 'No');
+      // console.log('[liveQuizApi] First attempt structure:', attempts[0]);
+      // console.log('[liveQuizApi] First attempt has answers?', attempts[0]?.answers ? 'Yes' : 'No');
+      // console.log('[liveQuizApi] First attempt has questions?', attempts[0]?.questions ? 'Yes' : 'No');
     }
 
     return attempts;
@@ -343,21 +340,18 @@ export async function fetchUserQuizAttempts(userId, { limit = 50, includeQuestio
 export async function fetchQuizAttemptById(attemptId, { includeAnswers = true } = {}) {
   if (!attemptId) throw new Error('attemptId is required');
 
-  console.log('\n[fetchQuizAttemptById] Fetching attempt result...');
-  console.log('[fetchQuizAttemptById] Attempt ID:', attemptId);
-  console.log('[fetchQuizAttemptById] Include Answers:', includeAnswers);
+
 
   try {
     const query = buildQueryString({ includeAnswers });
     const url = `${LIVE_QUIZ_BASE}/results/${attemptId}${query}`;
-    console.log('[fetchQuizAttemptById] URL:', url);
+    // console.log('[fetchQuizAttemptById] URL:', url);
 
     const response = await fetch(url);
-    console.log('[fetchQuizAttemptById] Response status:', response.status);
+    // console.log('[fetchQuizAttemptById] Response status:', response.status);
 
     const data = await parseApiResponse(response);
-    console.log('[fetchQuizAttemptById] Response data:', JSON.stringify(data, null, 2));
-    console.log('[fetchQuizAttemptById] Has answers?', data?.answers ? 'Yes' : 'No');
+    
 
     return data;
   } catch (error) {
@@ -376,9 +370,9 @@ export async function fetchQuizAttemptById(attemptId, { includeAnswers = true } 
 export async function fetchAttemptAnswers(attemptId, quizId = null) {
   if (!attemptId) throw new Error('attemptId is required');
 
-  console.log('\n[fetchAttemptAnswers] Trying multiple endpoints to find answers...');
-  console.log('[fetchAttemptAnswers] Attempt ID:', attemptId);
-  console.log('[fetchAttemptAnswers] Quiz ID:', quizId);
+  // console.log('\n[fetchAttemptAnswers] Trying multiple endpoints to find answers...');
+  // console.log('[fetchAttemptAnswers] Attempt ID:', attemptId);
+  // console.log('[fetchAttemptAnswers] Quiz ID:', quizId);
 
   // List of possible API endpoints where answers might be stored
   const possibleEndpoints = [
@@ -402,37 +396,32 @@ export async function fetchAttemptAnswers(attemptId, quizId = null) {
   // Try each endpoint
   for (const endpoint of possibleEndpoints) {
     try {
-      console.log(`[fetchAttemptAnswers] Trying: ${endpoint}`);
       const response = await fetch(endpoint);
 
       // Check if response is successful
       if (response.ok) {
         const data = await response.json();
-        console.log(`[fetchAttemptAnswers] ✅ SUCCESS at: ${endpoint}`);
-        console.log(`[fetchAttemptAnswers] Response:`, data);
+        // console.log(`[fetchAttemptAnswers] ✅ SUCCESS at: ${endpoint}`);
+        // console.log(`[fetchAttemptAnswers] Response:`, data);
 
         // Extract answers from various possible formats
         const answers = data?.answers || data?.userAnswers || data?.responses || data?.submissions;
 
         if (answers && (Array.isArray(answers) || typeof answers === 'object')) {
-          console.log(`[fetchAttemptAnswers] ✅ Found answers!`, answers);
+          
           return Array.isArray(answers) ? answers : [answers];
         }
 
         // If the whole response looks like answers array
         if (Array.isArray(data)) {
-          console.log(`[fetchAttemptAnswers] ✅ Response is an array, treating as answers`);
           return data;
         }
       } else {
-        console.log(`[fetchAttemptAnswers] ❌ Failed (${response.status}): ${endpoint}`);
       }
     } catch (error) {
-      console.log(`[fetchAttemptAnswers] ❌ Error at ${endpoint}:`, error.message);
     }
   }
 
-  console.warn('[fetchAttemptAnswers] ⚠️ No answers found in any endpoint');
   return [];
 }
 
