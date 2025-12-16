@@ -199,8 +199,30 @@ const AttemptedResultsPage = () => {
       );
 
       if (questionIndex !== -1) {
-        userAnswersMap[questionIndex] = selectedOption;
-        console.log(`Mapped to question ${questionIndex + 1}: ${selectedOption}`);
+        const question = questions[questionIndex];
+        let optionLetter = selectedOption;
+
+        // If selectedOption is full text (not a single letter), convert to letter (A, B, C, D)
+        if (selectedOption.length > 1 && question.options) {
+          console.log(`Converting full text answer "${selectedOption}" to letter option...`);
+
+          // Find which option matches the selected text
+          const matchingOptionIndex = question.options.findIndex(option => {
+            const optionText = typeof option === 'string' ? option : option.text;
+            // Compare trimmed lowercase versions for better matching
+            return optionText?.trim().toLowerCase() === selectedOption.trim().toLowerCase();
+          });
+
+          if (matchingOptionIndex !== -1) {
+            optionLetter = String.fromCharCode(65 + matchingOptionIndex); // 0->A, 1->B, 2->C, 3->D
+            console.log(`✅ Converted to option ${optionLetter}`);
+          } else {
+            console.log(`⚠️ Could not find matching option, keeping original text`);
+          }
+        }
+
+        userAnswersMap[questionIndex] = optionLetter;
+        console.log(`✅ Mapped to question ${questionIndex + 1}: ${optionLetter}`);
       }
     }
   });
@@ -210,10 +232,46 @@ const AttemptedResultsPage = () => {
   // Get results from attempt data
   const totalQuestions = userAttemptData.totalQuestions || questions.length;
 
-  // Use API response values directly
-  const correctCount = userAttemptData.correctCount || 0;
-  const incorrectCount = totalQuestions - correctCount - (questionBreakdown.length < totalQuestions ? totalQuestions - questionBreakdown.length : 0);
-  const unattemptedCount = totalQuestions - questionBreakdown.length;
+  // Calculate statistics from questionBreakdown and API response
+  let correctCount = 0;
+  let incorrectCount = 0;
+  let unattemptedCount = 0;
+
+  console.log('\n📊 CALCULATING QUIZ STATISTICS:');
+
+  // If we have questionBreakdown, calculate from it for accuracy
+  if (questionBreakdown && questionBreakdown.length > 0) {
+    // Count correct and incorrect from questionBreakdown
+    const correctFromBreakdown = questionBreakdown.filter(q => q.isCorrect === true).length;
+    const incorrectFromBreakdown = questionBreakdown.filter(q => q.isCorrect === false).length;
+
+    // Use correctCount from API (preferred), or fallback to breakdown count
+    correctCount = userAttemptData.correctCount || correctFromBreakdown;
+
+    // Calculate incorrect from breakdown
+    incorrectCount = incorrectFromBreakdown;
+
+    // Skipped = total questions - questions attempted (in breakdown)
+    unattemptedCount = totalQuestions - questionBreakdown.length;
+
+    console.log(`Questions in breakdown: ${questionBreakdown.length}`);
+    console.log(`Correct (isCorrect=true): ${correctFromBreakdown}`);
+    console.log(`Incorrect (isCorrect=false): ${incorrectFromBreakdown}`);
+    console.log(`Skipped (not in breakdown): ${unattemptedCount}`);
+  } else {
+    // Fallback to API fields if no questionBreakdown
+    correctCount = userAttemptData.correctCount || userAttemptData.correct || 0;
+    incorrectCount = userAttemptData.incorrect || userAttemptData.incorrectCount || 0;
+    unattemptedCount = userAttemptData.skipped || userAttemptData.unattemptedCount || 0;
+    console.log('Using API fields (no questionBreakdown available)');
+  }
+
+  console.log(`\n✅ Final Statistics:`);
+  console.log(`Total Questions: ${totalQuestions}`);
+  console.log(`Correct: ${correctCount}`);
+  console.log(`Incorrect: ${incorrectCount}`);
+  console.log(`Skipped: ${unattemptedCount}`);
+  console.log(`Validation: ${correctCount} + ${incorrectCount} + ${unattemptedCount} = ${correctCount + incorrectCount + unattemptedCount} (should equal ${totalQuestions})`);
 
   const questionResults = questions.map((question, index) => {
     const userAnswer = userAnswersMap[index];
@@ -251,10 +309,19 @@ const AttemptedResultsPage = () => {
     };
   });
 
-  // Get scores from attempt data
-  const score = userAttemptData.score || userAttemptData.correctCount || correctCount;
+  // Get scores and accuracy from attempt data
+  // Note: 'score' in API is points (e.g., 60), but for display we want correct count (e.g., 6)
+  const scorePoints = userAttemptData.score || 0; // Actual points scored
+  const scoreDisplay = correctCount; // Number of correct answers for "X/Y" display
+
+  // Use accuracy from API response directly, or calculate if not available
   const accuracy = userAttemptData.accuracy || (totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0);
   const percentage = accuracy;
+
+  console.log(`\n💯 SCORE & ACCURACY:`);
+  console.log(`Score Points (from API): ${scorePoints}`);
+  console.log(`Score Display: ${scoreDisplay}/${totalQuestions}`);
+  console.log(`Accuracy (from API): ${accuracy}%`);
 
   // Get quiz info
   const quizTitle = quizData.title || 'Quiz';
@@ -271,12 +338,15 @@ const AttemptedResultsPage = () => {
       })
     : 'N/A';
 
-  const timeSpentSeconds = userAttemptData.timeSpentSeconds || userAttemptData.effectiveTimeSeconds || 0;
+  // Get time spent - prioritize effectiveTimeSeconds from API response
+  const timeSpentSeconds = userAttemptData.effectiveTimeSeconds || userAttemptData.timeSpentSeconds || userAttemptData.totalTimeSeconds || 0;
   const timeSpentMinutes = Math.floor(timeSpentSeconds / 60);
   const timeSpentRemainingSeconds = timeSpentSeconds % 60;
   const formattedTimeSpent = timeSpentSeconds > 0
     ? `${timeSpentMinutes}m ${timeSpentRemainingSeconds}s`
     : 'N/A';
+
+  console.log(`\n⏱️ TIME SPENT: ${formattedTimeSpent} (${timeSpentSeconds}s)`);
 
   const handleBackToList = () => {
     router.push('/(main)/(tabs)/dailyQuiz');
@@ -345,14 +415,14 @@ const AttemptedResultsPage = () => {
           {/* Circular Score Display */}
           <View style={styles.scoreCircleContainer}>
             <View style={styles.scoreCircle}>
-              <Text style={styles.scoreValue}>{score}</Text>
+              <Text style={styles.scoreValue}>{scoreDisplay}</Text>
               <Text style={styles.scoreTotal}>/{totalQuestions}</Text>
             </View>
           </View>
 
           {/* Score Message */}
           <Text style={styles.scoreMessage}>
-            You scored {score} out of {totalQuestions} questions correctly.
+            You scored {scoreDisplay} out of {totalQuestions} questions correctly.
           </Text>
 
           <Text style={styles.performanceTitle}>{getPerformanceMessage()}</Text>
