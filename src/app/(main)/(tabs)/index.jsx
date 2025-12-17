@@ -664,337 +664,337 @@ const QuizArenaScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Logo and Title */}
+      {/* Logo and Title - Fixed at Top */}
       <View style={styles.headerLogoContainer}>
         <Image
           source={require("../../../assets/images/logo.png")}
           style={styles.headerLogo}
         />
-
         <Text style={styles.headerTitleText}>Skill Guru</Text>
       </View>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.badgeText}>🟢 LIVE QUIZ ARENA</Text>
-        <Text style={styles.headerTitle}>
-          Live, upcoming & attempted quizzes
-        </Text>
-        <Text style={styles.headerSubtitle}>
-          Pick a live quiz to join instantly, explore upcoming sessions or
-          review your attempt history.
-        </Text>
-      </View>
 
-      {/* Description Section */}
-      <View style={styles.infoSection}>
-        <Text style={styles.infoText}>
-          {appliedFilters.selectedCategories.length > 0 ||
-          appliedFilters.selectedClasses.length > 0 ||
-          appliedFilters.selectedSSCExams.length > 0 ||
-          appliedFilters.selectedPopularExams.length > 0
-            ? `Showing filtered quizzes based on your selection${
-                selectedLanguage !== "ALL"
-                  ? ` in ${
-                      selectedLanguage.charAt(0) +
-                      selectedLanguage.slice(1).toLowerCase()
-                    }`
-                  : ""
-              }.`
-            : `Showing recommended quizzes${
-                selectedLanguage !== "ALL"
-                  ? ` in ${
-                      selectedLanguage.charAt(0) +
-                      selectedLanguage.slice(1).toLowerCase()
-                    }`
-                  : " across all categories"
-              } and ranked from most visited.`}
-        </Text>
-      </View>
-
-      {/* Language Selector */}
-      <View style={styles.languageSection}>
-        <View style={styles.languageHeader}>
-          <Text style={styles.languageLabel}>LANGUAGE</Text>
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => filterRef.current?.openFilter()}
-          >
-            <Ionicons name="filter" size={18} color="#DC2626" />
-            <Text style={styles.filterButtonText}>Filters</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.languageTabs}>
-          {[
-            { label: "ALL LANGUAGES", value: "ALL" },
-            { label: "ENGLISH", value: "ENGLISH" },
-            { label: "HINDI", value: "HINDI" },
-          ].map((lang) => (
-            <TouchableOpacity
-              key={lang.value}
-              style={[
-                styles.languageTab,
-                selectedLanguage === lang.value && styles.languageTabActive,
-              ]}
-              onPress={() => setSelectedLanguage(lang.value)}
-            >
-              <Text
-                style={[
-                  styles.languageTabText,
-                  selectedLanguage === lang.value &&
-                    styles.languageTabTextActive,
-                ]}
-              >
-                {lang.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* Category Tabs */}
-      <View style={styles.categoryTabsContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryTabsContent}
-          style={styles.categoryTabsScroll}
-        >
-          {categoryTabs.map((category) => {
-            const categoryKey = category.toLowerCase();
-            const count = categoryCounts[categoryKey] || 0;
-            return (
-              <TouchableOpacity
-                key={category}
-                style={[
-                  styles.categoryTab,
-                  selectedCategory === categoryKey && styles.categoryTabActive,
-                ]}
-                onPress={() => setSelectedCategory(categoryKey)}
-              >
-                <View style={styles.categoryBadge}>
-                  <Text
-                    style={[
-                      styles.categoryBadgeText,
-                      selectedCategory === categoryKey &&
-                        styles.categoryBadgeTextActive,
-                    ]}
-                  >
-                    {category}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.categoryCount,
-                      selectedCategory === categoryKey &&
-                        styles.categoryCountActive,
-                    ]}
-                  >
-                    ({count})
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* Loading State */}
-      {loading && (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#DC2626" />
-          <Text style={styles.loadingText}>Loading quizzes...</Text>
-        </View>
-      )}
-
-      {/* Error State */}
-      {error && !loading && (
-        <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>⚠️ {error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => {
-              // Trigger refetch by toggling state
-              setSelectedCategory(selectedCategory);
-            }}
-          >
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Empty State (for non-winner tabs) */}
-      {selectedCategory !== "winner" &&
-        !loading &&
-        !error &&
-        filteredQuizzes.length === 0 && (
-          <View style={styles.centerContainer}>
-            <Text style={styles.emptyText}>
-              No {selectedCategory} quizzes available
+      {/* Scrollable Content */}
+      <ScrollView
+        style={styles.scrollableContent}
+        showsVerticalScrollIndicator={false}
+        stickyHeaderIndices={[1]}
+        refreshControl={
+          selectedCategory !== "winner" ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={["#DC2626"]}
+              tintColor="#DC2626"
+            />
+          ) : (
+            <RefreshControl
+              refreshing={winnersRefreshing}
+              onRefresh={handleRefreshWinners}
+              colors={["#DC2626"]}
+              tintColor="#DC2626"
+            />
+          )
+        }
+      >
+        {/* Header Section - Index 0 (scrollable) */}
+        <View>
+          <View style={styles.header}>
+            <Text style={styles.badgeText}>🟢 LIVE QUIZ ARENA</Text>
+            <Text style={styles.headerTitle}>
+              Live, upcoming & attempted quizzes
             </Text>
-            {selectedCategory === "attempted" && !uid && (
-              <Text style={styles.emptySubtext}>
-                Please log in to see your attempted quizzes
-              </Text>
-            )}
+            <Text style={styles.headerSubtitle}>
+              Pick a live quiz to join instantly, explore upcoming sessions or
+              review your attempt history.
+            </Text>
+          </View>
+
+          {/* Description Section */}
+          <View style={styles.infoSection}>
+            <Text style={styles.infoText}>
+              {appliedFilters.selectedCategories.length > 0 ||
+              appliedFilters.selectedClasses.length > 0 ||
+              appliedFilters.selectedSSCExams.length > 0 ||
+              appliedFilters.selectedPopularExams.length > 0
+                ? `Showing filtered quizzes based on your selection${
+                    selectedLanguage !== "ALL"
+                      ? ` in ${
+                          selectedLanguage.charAt(0) +
+                          selectedLanguage.slice(1).toLowerCase()
+                        }`
+                      : ""
+                  }.`
+                : `Showing recommended quizzes${
+                    selectedLanguage !== "ALL"
+                      ? ` in ${
+                          selectedLanguage.charAt(0) +
+                          selectedLanguage.slice(1).toLowerCase()
+                        }`
+                      : " across all categories"
+                  } and ranked from most visited.`}
+            </Text>
+          </View>
+        </View>
+
+        {/* Sticky Header Container - Index 1 (Language + Category Tabs) */}
+        <View style={styles.stickyHeaderContainer}>
+          {/* Language Selector */}
+          <View style={styles.languageSection}>
+            <View style={styles.languageHeader}>
+              <Text style={styles.languageLabel}>LANGUAGE</Text>
+              <TouchableOpacity
+                style={styles.filterButton}
+                onPress={() => filterRef.current?.openFilter()}
+              >
+                <Ionicons name="filter" size={18} color="#DC2626" />
+                <Text style={styles.filterButtonText}>Filters</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.languageTabs}>
+              {[
+                { label: "ALL LANGUAGES", value: "ALL" },
+                { label: "ENGLISH", value: "ENGLISH" },
+                { label: "HINDI", value: "HINDI" },
+              ].map((lang) => (
+                <TouchableOpacity
+                  key={lang.value}
+                  style={[
+                    styles.languageTab,
+                    selectedLanguage === lang.value && styles.languageTabActive,
+                  ]}
+                  onPress={() => setSelectedLanguage(lang.value)}
+                >
+                  <Text
+                    style={[
+                      styles.languageTabText,
+                      selectedLanguage === lang.value &&
+                        styles.languageTabTextActive,
+                    ]}
+                  >
+                    {lang.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Category Tabs */}
+          <View style={styles.categoryTabsContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryTabsContent}
+              style={styles.categoryTabsScroll}
+            >
+              {categoryTabs.map((category) => {
+                const categoryKey = category.toLowerCase();
+                const count = categoryCounts[categoryKey] || 0;
+                return (
+                  <TouchableOpacity
+                    key={category}
+                    style={[
+                      styles.categoryTab,
+                      selectedCategory === categoryKey && styles.categoryTabActive,
+                    ]}
+                    onPress={() => setSelectedCategory(categoryKey)}
+                  >
+                    <View style={styles.categoryBadge}>
+                      <Text
+                        style={[
+                          styles.categoryBadgeText,
+                          selectedCategory === categoryKey &&
+                            styles.categoryBadgeTextActive,
+                        ]}
+                      >
+                        {category}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.categoryCount,
+                          selectedCategory === categoryKey &&
+                            styles.categoryCountActive,
+                        ]}
+                      >
+                        ({count})
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+
+        {/* Content Area */}
+        {/* Loading State */}
+        {loading && (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color="#DC2626" />
+            <Text style={styles.loadingText}>Loading quizzes...</Text>
           </View>
         )}
 
-      {/* Winners Tab Content */}
-      {selectedCategory === "winner" && (
-        <>
-          {/* Date Picker Modal */}
-          {showDatePicker && (
-            <DateTimePicker
-              value={selectedDate}
-              mode="date"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              onChange={handleDateChange}
-              maximumDate={new Date()}
-            />
+        {/* Error State */}
+        {error && !loading && (
+          <View style={styles.centerContainer}>
+            <Text style={styles.errorText}>⚠️ {error}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => {
+                // Trigger refetch by toggling state
+                setSelectedCategory(selectedCategory);
+              }}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Empty State (for non-winner tabs) */}
+        {selectedCategory !== "winner" &&
+          !loading &&
+          !error &&
+          filteredQuizzes.length === 0 && (
+            <View style={styles.centerContainer}>
+              <Text style={styles.emptyText}>
+                No {selectedCategory} quizzes available
+              </Text>
+              {selectedCategory === "attempted" && !uid && (
+                <Text style={styles.emptySubtext}>
+                  Please log in to see your attempted quizzes
+                </Text>
+              )}
+            </View>
           )}
 
-          {/* Winners Content with Date Filter Always Visible */}
-          <ScrollView
-            style={styles.winnersScrollContainer}
-            contentContainerStyle={styles.winnersScrollContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={winnersRefreshing}
-                onRefresh={handleRefreshWinners}
-                colors={["#DC2626"]}
-                tintColor="#DC2626"
+        {/* Winners Tab Content */}
+        {selectedCategory === "winner" && (
+          <>
+            {/* Date Picker Modal */}
+            {showDatePicker && (
+              <DateTimePicker
+                value={selectedDate}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={handleDateChange}
+                maximumDate={new Date()}
               />
-            }
-          >
-            {/* Winners Header with Date Filter - Always Visible */}
-            <View style={styles.winnersHeader}>
-              <Text style={styles.winnersTitle}>HOURLY WINNERS</Text>
-              <Text style={styles.winnersDescription}>
-                Top scorers across hourly slots. Winners are the highest scorers
-                for each hourly quiz slot, determined by total points (correct
-                answers × 4 – incorrect answers).
-              </Text>
+            )}
 
-              {/* Date Picker and Refresh Button */}
-              <View style={styles.winnersControls}>
-                <View style={styles.datePickerContainer}>
-                  <Text style={styles.dateLabel}>Select Date:</Text>
+            {/* Winners Content */}
+            <View>
+              {/* Winners Header with Date Filter - Always Visible */}
+              <View style={styles.winnersHeader}>
+                <Text style={styles.winnersTitle}>HOURLY WINNERS</Text>
+                <Text style={styles.winnersDescription}>
+                  Top scorers across hourly slots. Winners are the highest scorers
+                  for each hourly quiz slot, determined by total points (correct
+                  answers × 4 – incorrect answers).
+                </Text>
+
+                {/* Date Picker and Refresh Button */}
+                <View style={styles.winnersControls}>
+                  <View style={styles.datePickerContainer}>
+                    <Text style={styles.dateLabel}>Select Date:</Text>
+                    <TouchableOpacity
+                      style={styles.datePickerButton}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Text style={styles.datePickerText}>
+                        {formatDisplayDate(selectedDate)}
+                      </Text>
+                      <Ionicons
+                        name="calendar-outline"
+                        size={16}
+                        color="#6B7280"
+                      />
+                    </TouchableOpacity>
+                  </View>
+
                   <TouchableOpacity
-                    style={styles.datePickerButton}
-                    onPress={() => setShowDatePicker(true)}
+                    style={styles.refreshButton}
+                    onPress={handleRefreshWinners}
+                    disabled={winnersLoading}
                   >
-                    <Text style={styles.datePickerText}>
-                      {formatDisplayDate(selectedDate)}
-                    </Text>
-                    <Ionicons
-                      name="calendar-outline"
-                      size={16}
-                      color="#6B7280"
-                    />
+                    <Text style={styles.refreshButtonText}>REFRESH</Text>
                   </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity
-                  style={styles.refreshButton}
-                  onPress={handleRefreshWinners}
-                  disabled={winnersLoading}
-                >
-                  <Text style={styles.refreshButtonText}>REFRESH</Text>
-                </TouchableOpacity>
+                {/* Status Text */}
+                <Text style={styles.winnersStatus}>
+                  Showing {formatDisplayDate(selectedDate)}'s winners •{" "}
+                  {dailyWinnersData.totalSlots} hourly slots
+                </Text>
               </View>
 
-              {/* Status Text */}
-              <Text style={styles.winnersStatus}>
-                Showing {formatDisplayDate(selectedDate)}'s winners •{" "}
-                {dailyWinnersData.totalSlots} hourly slots
-              </Text>
-            </View>
-
-            {/* Error State for Winners */}
-            {winnersError && !winnersLoading && (
-              <View style={styles.centerContainer}>
-                <Text style={styles.errorText}>⚠️ {winnersError}</Text>
-                <TouchableOpacity
-                  style={styles.retryButton}
-                  onPress={handleRefreshWinners}
-                >
-                  <Text style={styles.retryButtonText}>Retry</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Empty State for Winners */}
-            {!winnersLoading &&
-              !winnersError &&
-              dailyWinnersData.slots.length === 0 && (
+              {/* Error State for Winners */}
+              {winnersError && !winnersLoading && (
                 <View style={styles.centerContainer}>
-                  <Text style={styles.emptyText}>
-                    No winners found for this date
-                  </Text>
-                  <Text style={styles.emptySubtext}>
-                    Try selecting a different date
-                  </Text>
+                  <Text style={styles.errorText}>⚠️ {winnersError}</Text>
+                  <TouchableOpacity
+                    style={styles.retryButton}
+                    onPress={handleRefreshWinners}
+                  >
+                    <Text style={styles.retryButtonText}>Retry</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
-            {/* Winners List */}
-            {!winnersLoading &&
-              !winnersError &&
-              dailyWinnersData.slots.length > 0 && (
-                <View style={styles.winnersList}>
-                  {dailyWinnersData.slots.map((item, index) => (
-                    <WinnerCard
-                      key={item.slotHourKey || `slot-${index}`}
-                      winner={item}
-                    />
-                  ))}
-                </View>
-              )}
-          </ScrollView>
-        </>
-      )}
+              {/* Empty State for Winners */}
+              {!winnersLoading &&
+                !winnersError &&
+                dailyWinnersData.slots.length === 0 && (
+                  <View style={styles.centerContainer}>
+                    <Text style={styles.emptyText}>
+                      No winners found for this date
+                    </Text>
+                    <Text style={styles.emptySubtext}>
+                      Try selecting a different date
+                    </Text>
+                  </View>
+                )}
 
-      {/* Quiz List (for non-winner tabs) */}
-      {selectedCategory !== "winner" &&
-        !loading &&
-        !error &&
-        filteredQuizzes.length > 0 && (
-          <FlatList
-            data={displayedQuizzes}
-            keyExtractor={(item) =>
-              item.id || item._id || String(Math.random())
-            }
-            renderItem={({ item }) => (
-              <QuizCard quiz={item} onStartQuiz={handleStartQuiz} />
-            )}
-            contentContainerStyle={styles.quizList}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                colors={["#DC2626"]}
-                tintColor="#DC2626"
-              />
-            }
-            ListFooterComponent={
-              displayCount < filteredQuizzes.length ? (
+              {/* Winners List */}
+              {!winnersLoading &&
+                !winnersError &&
+                dailyWinnersData.slots.length > 0 && (
+                  <View style={styles.winnersList}>
+                    {dailyWinnersData.slots.map((item, index) => (
+                      <WinnerCard
+                        key={item.slotHourKey || `slot-${index}`}
+                        winner={item}
+                      />
+                    ))}
+                  </View>
+                )}
+            </View>
+          </>
+        )}
+
+        {/* Quiz List (for non-winner tabs) */}
+        {selectedCategory !== "winner" &&
+          !loading &&
+          !error &&
+          filteredQuizzes.length > 0 && (
+            <View style={styles.quizList}>
+              {displayedQuizzes.map((item) => (
+                <QuizCard
+                  key={item.id || item._id || String(Math.random())}
+                  quiz={item}
+                  onStartQuiz={handleStartQuiz}
+                />
+              ))}
+              {displayCount < filteredQuizzes.length && (
                 <Pressable
                   style={styles.loadMoreButton}
                   onPress={handleLoadMore}
                 >
                   <Text style={styles.loadMoreText}>Load More Quizes</Text>
                 </Pressable>
-              ) : null
-            }
-            // Performance optimizations for large datasets
-            initialNumToRender={10}
-            maxToRenderPerBatch={10}
-            windowSize={5}
-            updateCellsBatchingPeriod={50}
-            removeClippedSubviews={true}
-          />
-        )}
+              )}
+            </View>
+          )}
+      </ScrollView>
 
       {/* Floating Filter (Hidden) */}
       <FloatingFilter

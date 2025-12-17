@@ -5,30 +5,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#d0e7f7",
   },
+  scrollableContent: {
+    flex: 1,
+  },
+  stickyHeaderContainer: {
+    backgroundColor: "#FFFFFF",
+    zIndex: 10,
+    // iOS shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    // Android shadow
+    elevation: 4,
+  },
   headerLogoContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
 
     paddingVertical: 5,
-    marginBottom: 2,
+    marginBottom: 0,
 
     backgroundColor: "#fff", // REQUIRED for Android shadow
-    // borderTopEndRadius:10,
 
     borderBottomWidth: 0.5,
     borderBottomColor: "#b8b8b8c1",
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
 
     // iOS shadow
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
 
     // Android shadow
-    elevation: 6,
+    elevation: 4,
   },
   headerLogo: {
     height: 50,
@@ -78,7 +89,10 @@ const styles = StyleSheet.create({
   languageSection: {
     paddingHorizontal: 16,
     paddingVertical: 10,
+    paddingTop: 12,
     backgroundColor: "#FFFFFF",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#E5E7EB",
   },
   languageHeader: {
     flexDirection: "row",
@@ -130,6 +144,8 @@ const styles = StyleSheet.create({
   categoryTabsContainer: {
     backgroundColor: "#FFFFFF",
     paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
   },
   categoryTabsScroll: {
     paddingHorizontal: 16,
