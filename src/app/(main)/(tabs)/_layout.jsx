@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import COLORS from "../../../constants/colors";
 import BarIcons from "../../../constants/Icons";
 import DrawerToggle from "../../../components/drawerToggle"
+import { Ionicons,Octicons } from "@expo/vector-icons";
+import AntDesign from '@expo/vector-icons/AntDesign';
 
 const Tablayout = () => {
   const insets = useSafeAreaInsets();
@@ -25,8 +27,8 @@ const Tablayout = () => {
         },
       }}
     >
-      <Tabs.Screen
-        name="index"
+      {/* <Tabs.Screen
+        name="createQuiz"
         options={{
           title: "Create Quiz",
           headerLeft: () => <DrawerToggle />,
@@ -36,14 +38,15 @@ const Tablayout = () => {
           )
         }}
         
-      />
+      /> */}
       <Tabs.Screen
-        name="dailyQuiz"
+        name="index"
         options={{
           title: "Live Quiz",
           tabBarLabel: "Live Quiz",
-          tabBarIcon:()=>(
-            <Image source={BarIcons.dailyQuiz} style={{height:25,width:25}} contentFit="contain" />
+          tabBarIcon:({ color, size })=>(
+            // <Image source={BarIcons.dailyQuiz} style={{height:25,width:25}} contentFit="contain" />
+            <Octicons name="goal" size={28} color={color} />
           )
         }}
       />
@@ -52,8 +55,9 @@ const Tablayout = () => {
         options={{
           title: "Courses",
           tabBarLabel: "Courses",
-          tabBarIcon:()=>(
-            <Image source={BarIcons.history} style={{height:25,width:25}} contentFit="contain" />
+          tabBarIcon:({ color, size })=>(
+            // <Image source={BarIcons.history} style={{height:25,width:25}} contentFit="contain" />
+            <Ionicons name="color-filter" size={28} color={color} />
           )
         }}
       />
@@ -62,12 +66,13 @@ const Tablayout = () => {
         options={{
           title: "Profile",
           tabBarLabel: "Profile",
-          tabBarIcon:()=>(
-            <Image source={BarIcons.topCreator} style={{height:25,width:25}} contentFit="contain" />
+          tabBarIcon:({ color, size })=>(
+            // <Image source={BarIcons.topCreator} style={{height:25,width:25}} contentFit="contain" />
+            <Octicons name="feed-person" size={28} color={color} />
           )
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="earnings"
         options={{
           title: "Earnings",
@@ -76,7 +81,7 @@ const Tablayout = () => {
             <Image source={BarIcons.earnings} style={{height:25,width:25}} contentFit="contain" />
           ),
         }}
-      />
+      /> */}
     </Tabs>
   );
 };
