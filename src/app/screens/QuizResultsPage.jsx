@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const QuizResultsPage = () => {
   const router = useRouter();
@@ -129,7 +128,7 @@ const QuizResultsPage = () => {
   const language = quiz.language || 'English';
 
   const handleBackToList = () => {
-    router.push('/(main)/(tabs)/dailyQuiz');
+    router.push('/(main)/(tabs)');
   };
 
   const handleViewSolution = (questionIndex) => {
@@ -341,7 +340,7 @@ const QuizResultsPage = () => {
           style={styles.backToListButton}
           onPress={handleBackToList}
         >
-          <Text style={styles.backToListButtonText}>BACK TO QUIZ LIST</Text>
+          <Text style={styles.backToListButtonText}>Explore More Quizes</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
