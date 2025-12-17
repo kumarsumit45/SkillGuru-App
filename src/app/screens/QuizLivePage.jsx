@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { fetchLiveQuizById, startLiveQuizSession, completeLiveQuizSession, submitLiveQuizAnswer } from '../../api/liveQuizApi';
 import useAuthStore from '../../store/authStore';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const QuizLivePage = () => {
   const router = useRouter();
@@ -456,7 +457,8 @@ const QuizLivePage = () => {
         <View style={styles.card}>
           {/* Back Button */}
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Text style={styles.backButtonText}>← BACK</Text>
+            <MaterialCommunityIcons name="arrow-left-thin" size={20} color="black" />
+            <Text style={styles.backButtonText}>BACK</Text>
           </TouchableOpacity>
 
           {/* Quiz Title Section */}
@@ -673,6 +675,10 @@ const styles = StyleSheet.create({
     borderColor: '#D1D5DB',
     borderRadius: 25,
     marginBottom: 24,
+    flexDirection:"row",
+    justifyContent:"center",
+    alignItems:"center",
+    gap:6
   },
   backButtonText: {
     fontSize: 14,

@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -182,8 +183,9 @@ const QuizResultsPage = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleBackToList}>
-            <Text style={styles.backButton}>← Back</Text>
+          <TouchableOpacity style={styles.backButton} onPress={handleBackToList}>
+            <MaterialCommunityIcons name="arrow-left-thin" size={20} color="black" />
+            <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{quizCategory}</Text>
         </View>
@@ -366,10 +368,23 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E7EB',
   },
   backButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderWidth: 1.5,
+    borderColor: '#D1D5DB',
+    borderRadius: 25,
+    marginBottom: 24,
+    flexDirection:"row",
+    justifyContent:"center",
+    alignItems:"center",
+    gap:6
+  },
+  backButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#DC2626',
-    marginBottom: 8,
+    color: '#374151',
+    letterSpacing: 0.5,
   },
   headerTitle: {
     fontSize: 18,
