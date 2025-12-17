@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
   View,
@@ -15,7 +16,7 @@ const QuizCard = ({ quiz, onStartQuiz }) => {
         {quiz.category === 'live' && (
           <View style={styles.liveIndicator}>
             <View style={styles.liveDot} />
-            <Text style={styles.liveText}>Live right now</Text>
+            <Text style={styles.liveText}>Live </Text>
           </View>
         )}
         {quiz.category === 'upcoming' && (
@@ -122,7 +123,7 @@ const QuizCard = ({ quiz, onStartQuiz }) => {
              quiz.category === 'practice' ? 'VIEW DETAILS' :
              'VIEW RESULTS'}
           </Text>
-          <Text style={styles.startButtonArrow}>→</Text>
+          <MaterialCommunityIcons name="arrow-right-thin" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
     </View>
@@ -152,7 +153,11 @@ const styles = StyleSheet.create({
   liveIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor:"#d4fed0ff",
     gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
   },
   liveDot: {
     width: 8,
