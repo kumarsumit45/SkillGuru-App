@@ -53,6 +53,8 @@ const AttemptedResultsPage = () => {
         // Fetch user quiz attempts using fetchUserQuizAttempts
         const userAttempts = await fetchUserQuizAttempts(uid, {
           limit: 100,
+          includeQuestions: true,
+          includeAnswers: true,
         });
 
         console.log('Total attempts found:', userAttempts.length);
@@ -70,45 +72,74 @@ const AttemptedResultsPage = () => {
         console.log('Has questionBreakdown?', attemptResult.questionBreakdown ? 'Yes' : 'No');
 
         if (attemptResult.questionBreakdown) {
-          console.log('questionBreakdown:', attemptResult.questionBreakdown);
+          console.log('questionBreakdown sample:', attemptResult.questionBreakdown.slice(0, 2));
           console.log('Total answers in breakdown:', attemptResult.questionBreakdown.length);
+        } else {
+          console.warn('⚠️ No questionBreakdown found in attempt result!');
+          console.log('Attempt result keys:', Object.keys(attemptResult));
         }
 
-        // Extract quizId from the attempt result
-        const quizId = attemptResult.quizId;
-        if (!quizId) {
-          setError('Quiz ID not found in attempt data');
-          setLoading(false);
-          return;
-        }
+        // Check if questionBreakdown has full data (questionText, options)
+        const hasFullBreakdownData = attemptResult.questionBreakdown?.length > 0 &&
+                                      attemptResult.questionBreakdown[0]?.questionText &&
+                                      attemptResult.questionBreakdown[0]?.options?.length > 0;
 
-        // Fetch quiz questions using the quizId
+        console.log('Has full breakdown data?', hasFullBreakdownData);
+
+        let questions = [];
         let quizResponse = null;
-        try {
-          quizResponse = await fetchLiveQuizById(quizId);
-          console.log('Quiz Response:', quizResponse);
-        } catch (quizError) {
-          console.warn('Failed to fetch quiz by ID:', quizError.message);
-          setError('Quiz questions not available. The quiz may have expired.');
-          setLoading(false);
-          return;
-        }
 
-        // Get questions from quiz response
-        const questions = quizResponse?.questions || [];
-        if (questions.length === 0) {
-          setError('Quiz questions not available.');
-          setLoading(false);
-          return;
+        if (hasFullBreakdownData) {
+          // Use questionBreakdown directly as questions
+          console.log('Using questionBreakdown as primary data source');
+          questions = attemptResult.questionBreakdown.map((breakdown, idx) => ({
+            id: breakdown.questionId,
+            questionId: breakdown.questionId,
+            question_text: breakdown.questionText,
+            questionText: breakdown.questionText,
+            text: breakdown.questionText,
+            options: breakdown.options,
+            correct_answer: breakdown.correctAnswer,
+            correctAnswer: breakdown.correctAnswer,
+            explanation: breakdown.explanation || '',
+            concept: breakdown.concept || breakdown.topic || 'General',
+          }));
+        } else {
+          // Need to fetch quiz questions separately
+          console.log('Fetching quiz questions separately');
+
+          const quizId = attemptResult.quizId;
+          if (!quizId) {
+            setError('Quiz ID not found in attempt data');
+            setLoading(false);
+            return;
+          }
+
+          try {
+            quizResponse = await fetchLiveQuizById(quizId);
+            console.log('Quiz Response:', quizResponse);
+            questions = quizResponse?.questions || [];
+
+            if (questions.length === 0) {
+              setError('Quiz questions not available.');
+              setLoading(false);
+              return;
+            }
+          } catch (quizError) {
+            console.warn('Failed to fetch quiz by ID:', quizError.message);
+            setError('Quiz questions not available. The quiz may have expired.');
+            setLoading(false);
+            return;
+          }
         }
 
         // Build complete quiz data
         const completeQuizData = {
-          id: quizId,
+          id: attemptResult.quizId,
           title: attemptResult.quizTitle || quizResponse?.title || attemptResult.quizLabel || 'Quiz',
           subject: attemptResult.quizSubject || quizResponse?.subject || 'General',
           language: attemptResult.language || quizResponse?.language || 'English',
-          duration: quizResponse?.duration || quizResponse?.durationMinutes || 'N/A',
+          duration: quizResponse?.duration || quizResponse?.durationMinutes || attemptResult.duration || 'N/A',
           questions: questions,
           quiz_metadata: quizResponse?.quiz_metadata || {},
         };
@@ -176,137 +207,12 @@ const AttemptedResultsPage = () => {
   }
 
   // Process user answers from questionBreakdown
-  const userAnswersMap = {};
   const questionBreakdown = userAttemptData.questionBreakdown || [];
+  const questions = quizData.questions || [];
 
   console.log('Processing questionBreakdown...');
   console.log('Total answers in breakdown:', questionBreakdown.length);
-
-  // Map questionBreakdown to userAnswersMap by matching questionId
-  const questions = quizData.questions || [];
-
-  questionBreakdown.forEach((breakdown, index) => {
-    const questionId = breakdown.questionId;
-    const selectedOption = breakdown.selectedOption;
-
-    console.log(`Answer ${index + 1}:`, { questionId, selectedOption, isCorrect: breakdown.isCorrect });
-
-    if (questionId && selectedOption) {
-      // Find the question index by matching questionId
-      const questionIndex = questions.findIndex(q =>
-        (q.id === questionId || q._id === questionId || q.questionId === questionId)
-      );
-
-      if (questionIndex !== -1) {
-        const question = questions[questionIndex];
-        let optionLetter = selectedOption;
-
-        // If selectedOption is full text (not a single letter), convert to letter (A, B, C, D)
-        if (selectedOption.length > 1 && question.options) {
-          console.log(`\n🔍 Converting full text answer to letter option:`);
-          console.log(`   User's answer: "${selectedOption}"`);
-          console.log(`   Available options:`, question.options.map((opt, i) => `${String.fromCharCode(65 + i)}: "${typeof opt === 'string' ? opt : opt.text}"`));
-
-          let matchingOptionIndex = -1;
-
-          // STRATEGY 1: Exact match (case-sensitive)
-          matchingOptionIndex = question.options.findIndex(option => {
-            const optionText = typeof option === 'string' ? option : option.text;
-            return optionText === selectedOption;
-          });
-
-          if (matchingOptionIndex !== -1) {
-            console.log(`   ✅ Strategy 1 (Exact match): Found at index ${matchingOptionIndex}`);
-          }
-
-          // STRATEGY 2: Case-insensitive trimmed match
-          if (matchingOptionIndex === -1) {
-            matchingOptionIndex = question.options.findIndex(option => {
-              const optionText = typeof option === 'string' ? option : option.text;
-              return optionText?.trim().toLowerCase() === selectedOption.trim().toLowerCase();
-            });
-
-            if (matchingOptionIndex !== -1) {
-              console.log(`   ✅ Strategy 2 (Case-insensitive): Found at index ${matchingOptionIndex}`);
-            }
-          }
-
-          // STRATEGY 3: Normalized match (remove extra spaces, punctuation)
-          if (matchingOptionIndex === -1) {
-            const normalizeText = (text) => {
-              return text
-                .toLowerCase()
-                .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
-                .replace(/[.,;:!?'"()[\]{}]/g, '')  // Remove punctuation
-                .trim();
-            };
-
-            const normalizedSelected = normalizeText(selectedOption);
-            matchingOptionIndex = question.options.findIndex(option => {
-              const optionText = typeof option === 'string' ? option : option.text;
-              return normalizeText(optionText) === normalizedSelected;
-            });
-
-            if (matchingOptionIndex !== -1) {
-              console.log(`   ✅ Strategy 3 (Normalized): Found at index ${matchingOptionIndex}`);
-            }
-          }
-
-          // STRATEGY 4: Partial match (contains)
-          if (matchingOptionIndex === -1) {
-            matchingOptionIndex = question.options.findIndex(option => {
-              const optionText = typeof option === 'string' ? option : option.text;
-              return optionText?.toLowerCase().includes(selectedOption.toLowerCase()) ||
-                     selectedOption.toLowerCase().includes(optionText?.toLowerCase());
-            });
-
-            if (matchingOptionIndex !== -1) {
-              console.log(`   ⚠️ Strategy 4 (Partial match): Found at index ${matchingOptionIndex}`);
-            }
-          }
-
-          if (matchingOptionIndex !== -1) {
-            optionLetter = String.fromCharCode(65 + matchingOptionIndex); // 0->A, 1->B, 2->C, 3->D
-            console.log(`   ✅ Final result: Converted to option ${optionLetter}`);
-          } else {
-            console.log(`   ❌ No match found! Keeping original text: "${selectedOption}"`);
-            console.log(`   This answer will be displayed as text instead of a letter.`);
-          }
-        }
-
-        userAnswersMap[questionIndex] = optionLetter;
-        console.log(`✅ Mapped to question ${questionIndex + 1}: ${optionLetter}\n`);
-      } else {
-        console.log(`⚠️ Could not find matching question for questionId: ${questionId}`);
-      }
-    }
-  });
-
-  // Summary of answer mapping
-  console.log('\n========================================');
-  console.log('📊 ANSWER MAPPING SUMMARY');
-  console.log('========================================');
-  console.log(`Total answers in breakdown: ${questionBreakdown.length}`);
-  console.log(`Total questions in quiz: ${questions.length}`);
-  console.log(`Successfully mapped answers: ${Object.keys(userAnswersMap).length}`);
-
-  // Check for failed mappings
-  const failedMappings = questionBreakdown.filter((bd, idx) => {
-    const questionIndex = questions.findIndex(q =>
-      (q.id === bd.questionId || q._id === bd.questionId || q.questionId === bd.questionId)
-    );
-    return questionIndex === -1 || !userAnswersMap[questionIndex] || userAnswersMap[questionIndex].length > 1;
-  });
-
-  if (failedMappings.length > 0) {
-    console.log(`⚠️ Failed to map ${failedMappings.length} answers:`);
-    failedMappings.forEach((bd, idx) => {
-      console.log(`   - questionId: ${bd.questionId}, answer: "${bd.selectedOption}"`);
-    });
-  } else {
-    console.log(`✅ All answers mapped successfully!`);
-  }
-  console.log('========================================\n');
+  console.log('Total questions in quiz:', questions.length);
 
   // Get results from attempt data
   const totalQuestions = userAttemptData.totalQuestions || questions.length;
@@ -353,30 +259,65 @@ const AttemptedResultsPage = () => {
   console.log(`Validation: ${correctCount} + ${incorrectCount} + ${unattemptedCount} = ${correctCount + incorrectCount + unattemptedCount} (should equal ${totalQuestions})`);
 
   const questionResults = questions.map((question, index) => {
-    const userAnswer = userAnswersMap[index];
-    let correctAnswer = question.correct_answer || question.correctAnswer;
-
-    // Convert correctAnswer from full text to option letter (A, B, C, D)
-    if (correctAnswer && question.options) {
-      const correctIndex = question.options.findIndex(option => {
-        const optionText = typeof option === 'string' ? option : option.text;
-        return optionText === correctAnswer;
-      });
-
-      if (correctIndex !== -1) {
-        correctAnswer = String.fromCharCode(65 + correctIndex); // 0->A, 1->B, 2->C, 3->D
-      }
-    }
-
-    // Find the breakdown for this question to get isCorrect status
+    // Find the breakdown for this question by matching questionId
     const breakdown = questionBreakdown.find(bd => {
       const questionId = bd.questionId;
-      return question.id === questionId || question._id === questionId || question.questionId === questionId;
+      return question.id === questionId || question._id === questionId || question.questionId === questionId ||
+             question.question_id === questionId;
     });
 
     let status = 'unattempted';
-    if (breakdown) {
+    let userAnswer = null;
+    let timeSpent = null;
+    let marks = null;
+
+    if (breakdown && breakdown.selectedOption) {
       status = breakdown.isCorrect ? 'correct' : 'incorrect';
+      const selectedOption = breakdown.selectedOption;
+
+      // Convert full text answer to option letter (A, B, C, D)
+      if (question.options) {
+        let matchingOptionIndex = -1;
+
+        // Try exact match first
+        matchingOptionIndex = question.options.findIndex(option => {
+          const optionText = typeof option === 'string' ? option : option.text;
+          return optionText === selectedOption;
+        });
+
+        // Try case-insensitive match
+        if (matchingOptionIndex === -1) {
+          matchingOptionIndex = question.options.findIndex(option => {
+            const optionText = typeof option === 'string' ? option : option.text;
+            return optionText?.trim().toLowerCase() === selectedOption.trim().toLowerCase();
+          });
+        }
+
+        if (matchingOptionIndex !== -1) {
+          userAnswer = String.fromCharCode(65 + matchingOptionIndex); // Convert to A, B, C, D
+        } else {
+          userAnswer = selectedOption; // Keep as full text if no match
+        }
+      } else {
+        userAnswer = selectedOption;
+      }
+
+      timeSpent = breakdown.timeSpentSeconds || breakdown.timeSpent;
+      marks = breakdown.marks || breakdown.points;
+    }
+
+    // Get correct answer and convert to letter
+    let correctAnswer = breakdown?.correctAnswer || question.correct_answer || question.correctAnswer;
+
+    if (correctAnswer && question.options) {
+      const correctIndex = question.options.findIndex(option => {
+        const optionText = typeof option === 'string' ? option : option.text;
+        return optionText?.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+      });
+
+      if (correctIndex !== -1) {
+        correctAnswer = String.fromCharCode(65 + correctIndex); // Convert to A, B, C, D
+      }
     }
 
     return {
@@ -385,6 +326,9 @@ const AttemptedResultsPage = () => {
       correctAnswer,
       status,
       index: index + 1,
+      timeSpent,
+      marks,
+      breakdown,
     };
   });
 
@@ -567,13 +511,20 @@ const AttemptedResultsPage = () => {
           <Text style={styles.questionSectionSubtitle}>Question Breakdown</Text>
 
           {/* Show warning if no answers found */}
-          {Object.keys(userAnswersMap).length === 0 && (
+          {questionBreakdown.length === 0 && (
             <View style={styles.warningBox}>
               <Text style={styles.warningIcon}>⚠️</Text>
               <Text style={styles.warningText}>
                 Your answers could not be loaded. Showing questions and correct answers only.
               </Text>
             </View>
+          )}
+
+          {/* Show info about answer format */}
+          {questionBreakdown.length > 0 && (
+            <Text style={styles.infoText}>
+              ✓ Green: Correct answer | ✗ Red: Your incorrect answer
+            </Text>
           )}
 
           {questionResults.map((question, idx) => {
@@ -608,6 +559,22 @@ const AttemptedResultsPage = () => {
                   {question.concept || question.cbse_chapter || 'General'}
                 </Text>
 
+                {/* Additional details from breakdown (time spent, marks) */}
+                {(question.timeSpent || question.marks) && (
+                  <View style={styles.questionMetaContainer}>
+                    {question.timeSpent && (
+                      <Text style={styles.questionMeta}>
+                        ⏱ {question.timeSpent}s
+                      </Text>
+                    )}
+                    {question.marks !== null && question.marks !== undefined && (
+                      <Text style={styles.questionMeta}>
+                        📊 {question.marks} marks
+                      </Text>
+                    )}
+                  </View>
+                )}
+
                 {/* Expanded Details */}
                 {isExpanded && (
                   <View style={styles.questionExpanded}>
@@ -616,25 +583,40 @@ const AttemptedResultsPage = () => {
                       {question.question_text || question.questionText || question.text}
                     </Text>
 
-                    {/* Show warning if answer is full text (couldn't be matched) */}
-                    {question.userAnswer && question.userAnswer.length > 1 && (
-                      <View style={styles.warningBox}>
-                        <Text style={styles.warningIcon}>⚠️</Text>
-                        <Text style={styles.warningText}>
-                          Your answer: "{question.userAnswer}" (Could not match to option letter)
-                        </Text>
+                    {/* Answer Summary */}
+                    {/* {question.status !== 'unattempted' && (
+                      <View style={styles.answerSummaryContainer}>
+                        <View style={styles.answerSummaryRow}>
+                          <Text style={styles.answerSummaryLabel}>Your Answer:</Text>
+                          <Text style={[
+                            styles.answerSummaryValue,
+                            question.status === 'correct' ? styles.answerCorrect : styles.answerIncorrect
+                          ]}>
+                            {question.userAnswer || 'N/A'}
+                            {question.status === 'correct' && ' ✓'}
+                            {question.status === 'incorrect' && ' ✗'}
+                          </Text>
+                        </View>
+                        <View style={styles.answerSummaryRow}>
+                          <Text style={styles.answerSummaryLabel}>Correct Answer:</Text>
+                          <Text style={[styles.answerSummaryValue, styles.answerCorrectGreen]}>
+                            {question.correctAnswer || 'N/A'} ✓
+                          </Text>
+                        </View>
                       </View>
-                    )}
+                    )} */}
 
                     {/* Options */}
                     <View style={styles.optionsList}>
                       {question.options?.map((option, optionIdx) => {
                         const optionKey = String.fromCharCode(65 + optionIdx); // A, B, C, D
+                        const optionText = (typeof option === 'string' ? option : option.text) || '';
+
+                        // Compare by option letter (A, B, C, D)
                         const isUserAnswer = question.userAnswer === optionKey;
                         const isCorrectAnswer = question.correctAnswer === optionKey;
 
-                        // Also check if user answer is the full text that matches this option
-                        const optionText = (typeof option === 'string' ? option : option.text) || '';
+                        // Also check if user answer is still full text (not converted)
                         const isUserAnswerFullText = question.userAnswer &&
                                                      question.userAnswer.length > 1 &&
                                                      optionText.toLowerCase().trim() === question.userAnswer.toLowerCase().trim();
@@ -653,7 +635,7 @@ const AttemptedResultsPage = () => {
                         return (
                           <View key={optionIdx} style={optionStyle}>
                             <Text style={styles.optionKey}>{optionKey}.</Text>
-                            <Text style={optionTextStyle}>{option.text || option}</Text>
+                            <Text style={optionTextStyle}>{optionText}</Text>
                             {isCorrectAnswer && (
                               <Text style={styles.correctBadge}>✓ Correct</Text>
                             )}
@@ -670,6 +652,30 @@ const AttemptedResultsPage = () => {
                       <View style={styles.explanationBox}>
                         <Text style={styles.explanationTitle}>Explanation:</Text>
                         <Text style={styles.explanationText}>{question.explanation}</Text>
+                      </View>
+                    )}
+
+                    {/* Additional breakdown details */}
+                    {question.breakdown && (
+                      <View style={styles.breakdownDetailsContainer}>
+                        {question.breakdown.difficulty && (
+                          <View style={styles.breakdownDetail}>
+                            <Text style={styles.breakdownDetailLabel}>Difficulty:</Text>
+                            <Text style={styles.breakdownDetailValue}>{question.breakdown.difficulty}</Text>
+                          </View>
+                        )}
+                        {question.breakdown.topic && (
+                          <View style={styles.breakdownDetail}>
+                            <Text style={styles.breakdownDetailLabel}>Topic:</Text>
+                            <Text style={styles.breakdownDetailValue}>{question.breakdown.topic}</Text>
+                          </View>
+                        )}
+                        {question.breakdown.tags && question.breakdown.tags.length > 0 && (
+                          <View style={styles.breakdownDetail}>
+                            <Text style={styles.breakdownDetailLabel}>Tags:</Text>
+                            <Text style={styles.breakdownDetailValue}>{question.breakdown.tags.join(', ')}</Text>
+                          </View>
+                        )}
                       </View>
                     )}
                   </View>
@@ -868,6 +874,13 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 16,
   },
+  infoText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
   warningBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -933,6 +946,16 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '500',
   },
+  questionMetaContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  questionMeta: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
   questionExpanded: {
     marginTop: 16,
     paddingTop: 16,
@@ -945,6 +968,38 @@ const styles = StyleSheet.create({
     color: '#111827',
     lineHeight: 22,
     marginBottom: 16,
+  },
+  answerSummaryContainer: {
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 12,
+  },
+  answerSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  answerSummaryLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  answerSummaryValue: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  answerCorrect: {
+    color: '#10B981',
+  },
+  answerIncorrect: {
+    color: '#EF4444',
+  },
+  answerCorrectGreen: {
+    color: '#10B981',
   },
   optionsList: {
     gap: 8,
@@ -962,10 +1017,17 @@ const styles = StyleSheet.create({
   optionCorrect: {
     backgroundColor: '#D1FAE5',
     borderColor: '#10B981',
+    borderWidth: 2,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   optionIncorrect: {
     backgroundColor: '#FEE2E2',
     borderColor: '#EF4444',
+    borderWidth: 2,
   },
   optionKey: {
     fontSize: 14,
@@ -980,24 +1042,32 @@ const styles = StyleSheet.create({
     color: '#374151',
   },
   optionTextCorrect: {
-    color: '#065F46',
-    fontWeight: '600',
+    color: '#047857',
+    fontWeight: '700',
   },
   optionTextIncorrect: {
     color: '#991B1B',
     fontWeight: '600',
   },
   correctBadge: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#10B981',
     marginLeft: 8,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   incorrectBadge: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#EF4444',
     marginLeft: 8,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   explanationBox: {
     backgroundColor: '#EEF2FF',
@@ -1016,6 +1086,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#374151',
     lineHeight: 20,
+  },
+  breakdownDetailsContainer: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 8,
+  },
+  breakdownDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  breakdownDetailLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  breakdownDetailValue: {
+    fontSize: 13,
+    color: '#374151',
+    flex: 1,
   },
   backToListButton: {
     backgroundColor: '#DC2626',
