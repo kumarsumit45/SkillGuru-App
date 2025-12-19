@@ -4,11 +4,12 @@ import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, RefreshControl, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, RefreshControl, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchUserProfile } from '../../../api/profileUserApi';
 import { auth } from '../../../config/firebase';
 import useAuthStore from '../../../store/authStore';
+import config from '../../../config';
 
 const ProfilePage = () => {
   const [copied, setCopied] = useState(false);
@@ -16,6 +17,9 @@ const ProfilePage = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
+  const [referralsModalVisible, setReferralsModalVisible] = useState(false);
+  const [referrals, setReferrals] = useState([]);
+  const [referralsLoading, setReferralsLoading] = useState(false);
   const { uid, clearAuth, profileRefreshTrigger } = useAuthStore();
   const router = useRouter();
 
@@ -139,6 +143,37 @@ const ProfilePage = () => {
         }
       ]
     );
+  };
+
+  const fetchReferrals = async () => {
+    if (!uid) return;
+
+    try {
+      setReferralsLoading(true);
+      const response = await fetch(`${config.backendUrl}/referral/get-referrals/${uid}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch referrals');
+      }
+
+      const data = await response.json();
+      setReferrals(data.referrals || []);
+    } catch (err) {
+      console.error('Error fetching referrals:', err);
+      Alert.alert('Error', 'Failed to load referrals');
+    } finally {
+      setReferralsLoading(false);
+    }
+  };
+
+  const handleViewReferrals = () => {
+    setReferralsModalVisible(true);
+    // fetchReferrals();
   };
 
   // Loading state
@@ -385,7 +420,7 @@ const ProfilePage = () => {
       </View>
 
       {/* View Referrals Button */}
-      <TouchableOpacity style={styles.referralsButton}>
+      <TouchableOpacity style={styles.referralsButton} activeOpacity={0.8} onPress={handleViewReferrals}>
         <FontAwesome5 name="users" size={16} color="#fff" />
         <Text style={styles.referralsButtonText}>
           View Referrals ({userData.referralsCount ?? 0})
@@ -400,6 +435,71 @@ const ProfilePage = () => {
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
+
+    {/* Referrals Modal */}
+    <Modal
+      visible={referralsModalVisible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setReferralsModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <View style={styles.modalTitleContainer}>
+              <FontAwesome5 name="users" size={24} color="#6366f1" />
+              <Text style={styles.modalTitle}>My Referrals</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setReferralsModalVisible(false)}
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={28} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Modal Body */}
+          <View style={styles.modalBody}>
+            {referralsLoading ? (
+              <View style={styles.modalLoadingContainer}>
+                <ActivityIndicator size="large" color="#6366f1" />
+                <Text style={styles.modalLoadingText}>Loading referrals...</Text>
+              </View>
+            ) : referrals.length === 0 ? (
+              <View style={styles.emptyReferralsContainer}>
+                <View style={styles.emptyReferralsIcon}>
+                  <FontAwesome5 name="user-plus" size={60} color="#9ca3af" />
+                </View>
+                <Text style={styles.emptyReferralsTitle}>No referrals yet</Text>
+                <Text style={styles.emptyReferralsSubtitle}>
+                  Share your referral link to{'\n'}start earning rewards!
+                </Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.referralsList} showsVerticalScrollIndicator={false}>
+                {referrals.map((referral, index) => (
+                  <View key={index} style={styles.referralItem}>
+                    <View style={styles.referralAvatar}>
+                      <Ionicons name="person" size={20} color="#6366f1" />
+                    </View>
+                    <View style={styles.referralInfo}>
+                      <Text style={styles.referralName}>{referral.name || 'User'}</Text>
+                      <Text style={styles.referralDate}>
+                        {referral.joinedDate || 'Recently joined'}
+                      </Text>
+                    </View>
+                    <View style={styles.referralBadge}>
+                      <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </View>
+    </Modal>
   </SafeAreaView>
   );
 };
@@ -846,6 +946,119 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 20,
     fontStyle: 'italic',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalBody: {
+    minHeight: 300,
+  },
+  modalLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  modalLoadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  emptyReferralsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyReferralsIcon: {
+    marginBottom: 20,
+  },
+  emptyReferralsTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginBottom: 8,
+  },
+  emptyReferralsSubtitle: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  referralsList: {
+    padding: 20,
+  },
+  referralItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  referralAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#e0e7ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  referralInfo: {
+    flex: 1,
+  },
+  referralName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  referralDate: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  referralBadge: {
+    marginLeft: 8,
   },
 });
 
