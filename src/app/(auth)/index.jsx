@@ -42,6 +42,8 @@ const AuthScreen = () => {
   const [message, setMessage] = useState("");
   const [referralId, setReferralId] = useState("");
   const [selectedRoles, setSelectedRoles] = useState([]);
+  const [guestLoading, setGuestLoading] = useState(false);
+  const [guestUid, setGuestUid] = useState("");
 
   const router = useRouter();
   const { setUid } = useAuthStore();
@@ -159,6 +161,12 @@ const AuthScreen = () => {
     try {
       const uid = await AsyncStorage.getItem("uid");
       if (!uid) return;
+
+      // Skip if no roles are selected
+      if (!selectedRoles || selectedRoles.length === 0) {
+        console.log("No roles selected, skipping save");
+        return;
+      }
 
       const response = await fetch(`${config.backendUrl}/save-roles/save-roles`, {
         method: "POST",
@@ -283,6 +291,51 @@ const AuthScreen = () => {
       Alert.alert("Error", e.message || "OTP verification failed");
     } finally {
       setWaVerifying(false);
+    }
+  };
+
+  // Guest Signup
+  const guestSignup = async () => {
+    try {
+      setGuestLoading(true);
+      setError("");
+      const resp = await fetch(`${config.backendUrl}/auth/guest/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await resp.json().catch(async () => ({
+        message: await resp.text(),
+      }));
+      if (!resp.ok) {
+        throw new Error(data?.error || data?.message || "Guest signup failed");
+      }
+      if (!data?.token || !data?.uid) {
+        throw new Error("Invalid response from guest signup");
+      }
+      // Sign in to Firebase using the custom token
+      await signInWithCustomToken(auth, data.token);
+      await AsyncStorage.setItem("uid", data.uid);
+      try {
+        await AsyncStorage.setItem("authToken", data.token || "");
+      } catch (_) {}
+
+      try {
+        await handleStoreReferral();
+      } catch (_) {}
+      try {
+        await saveRolesToDatabase();
+      } catch (_) {}
+
+      setUid(data.uid);
+      setGuestUid(data.uid);
+      setTimeout(() => router.push("/(main)/(tabs)"), 0);
+    } catch (e) {
+      console.error("guestSignup error", e);
+      setError(e.message || "Guest signup failed");
+      Alert.alert("Error", e.message || "Guest signup failed");
+    } finally {
+      setGuestLoading(false);
     }
   };
 
@@ -459,19 +512,24 @@ const AuthScreen = () => {
             </View>
 
             {/* Signup as Guest Button */}
-            <TouchableOpacity activeOpacity={0.7} style={styles.signupGuestButton}>
-              <Text style={styles.signupGuestButtonText}>Signup as Guest</Text>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={[styles.signupGuestButton, guestLoading && { opacity: 0.6 }]}
+              onPress={guestSignup}
+              disabled={guestLoading}
+            >
+              {guestLoading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.signupGuestButtonText}>Signup as Guest</Text>
+              )}
             </TouchableOpacity>
           </View>
         {/* </View> */}
         </LinearGradient>
       </ScrollView>
 
-      {/* WhatsApp Button */}
-      {/* <TouchableOpacity style={styles.whatsappButton}>
-        <Text style={styles.whatsappIcon}>💬</Text>
-      </TouchableOpacity> */}
-      {/* // </LinearGradient> */}
+      
     </SafeAreaView>
   );
 };
