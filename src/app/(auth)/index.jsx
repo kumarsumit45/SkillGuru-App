@@ -51,7 +51,7 @@ const AuthScreen = () => {
   // Configure Google OAuth
   
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com",  // need replacement here
+    clientId: "910363851200-gvb6s1t63190u8efse9vannrluhrgo8o.apps.googleusercontent.com",
   });
 
   useEffect(() => {
