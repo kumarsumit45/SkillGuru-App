@@ -1,1 +1,282 @@
-{"installed":{"client_id":"910363851200-fdfi60fer0vqd0vej1rgi7p0uik90pnj.apps.googleusercontent.com","project_id":"the-skill-guru---durgesh","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs"}}
+{
+  "project_info": {
+    "project_number": "910363851200",
+    "project_id": "the-skill-guru---durgesh",
+    "storage_bucket": "the-skill-guru---durgesh.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:910363851200:android:d105fc29310367e3bcf025",
+        "android_client_info": {
+          "package_name": "com.example.mainskillguru111"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "910363851200-57rv0njc2lasfdjqb68dbkci2rmuc0dg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mainskillguru111",
+            "certificate_hash": "3f00f5378eb3f3cd8fccde45e20552781b065abf"
+          }
+        },
+        {
+          "client_id": "910363851200-b969v6te1tm56urp1ldvuibkv5tf4ukq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mainskillguru111",
+            "certificate_hash": "34adf22122ff82c9fc71091036cb693f4420074a"
+          }
+        },
+        {
+          "client_id": "910363851200-beqi5vmv9tmefhmmcs04ovc8hlkfvcb3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mainskillguru111",
+            "certificate_hash": "73bde9ea0c422f6408609dc462173e481cd7c267"
+          }
+        },
+        {
+          "client_id": "910363851200-jrm2q2pfe2p16t1p58j1rropi7gst8ft.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mainskillguru111",
+            "certificate_hash": "088fdd4fa03d522329f00d1d70ba4741dadd657e"
+          }
+        },
+        {
+          "client_id": "910363851200-tocapboc6716p2oet9600gal4nn97seo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mainskillguru111",
+            "certificate_hash": "95e4580639550d6eed02333b2c188c675bf15cb9"
+          }
+        },
+        {
+          "client_id": "910363851200-gvb6s1t63190u8efse9vannrluhrgo8o.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEWEgbGmgmjTptTRD7K42K3Y88MlC2E3c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "910363851200-gvb6s1t63190u8efse9vannrluhrgo8o.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "910363851200-0guidrun9ug1rt2n9e6pqr96g9482tgm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.skillguru.app"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:910363851200:android:4b7db82f8815d475bcf025",
+        "android_client_info": {
+          "package_name": "com.kumarsumit45.SkillGuru"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "910363851200-gvb6s1t63190u8efse9vannrluhrgo8o.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEWEgbGmgmjTptTRD7K42K3Y88MlC2E3c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "910363851200-gvb6s1t63190u8efse9vannrluhrgo8o.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "910363851200-0guidrun9ug1rt2n9e6pqr96g9482tgm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.skillguru.app"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:910363851200:android:b129447b07a88758bcf025",
+        "android_client_info": {
+          "package_name": "com.skillguru.mainskillguru111"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "910363851200-3f4gisr3pcl8238plhg24jlnl6cet27r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.skillguru.mainskillguru111",
+            "certificate_hash": "73bde9ea0c422f6408609dc462173e481cd7c267"
+          }
+        },
+        {
+          "client_id": "910363851200-53du9gpg9srsbb1rrvk0kfan8rgp4aud.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.skillguru.mainskillguru111",
+            "certificate_hash": "95e4580639550d6eed02333b2c188c675bf15cb9"
+          }
+        },
+        {
+          "client_id": "910363851200-7mt8dlqkfakmnp8vmds7inhcn1uqqcpm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.skillguru.mainskillguru111",
+            "certificate_hash": "088fdd4fa03d522329f00d1d70ba4741dadd657e"
+          }
+        },
+        {
+          "client_id": "910363851200-iu6t0rhda6ia0c5h6sbft3pf9k317rqn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.skillguru.mainskillguru111",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "910363851200-qh2tf82dskv9itj36g6712ff4nok7rp9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.skillguru.mainskillguru111",
+            "certificate_hash": "34adf22122ff82c9fc71091036cb693f4420074a"
+          }
+        },
+        {
+          "client_id": "910363851200-rfhm2j3k7lvalso83eqvkr8abkoqt2km.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.skillguru.mainskillguru111",
+            "certificate_hash": "3f00f5378eb3f3cd8fccde45e20552781b065abf"
+          }
+        },
+        {
+          "client_id": "910363851200-gvb6s1t63190u8efse9vannrluhrgo8o.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEWEgbGmgmjTptTRD7K42K3Y88MlC2E3c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "910363851200-gvb6s1t63190u8efse9vannrluhrgo8o.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "910363851200-0guidrun9ug1rt2n9e6pqr96g9482tgm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.skillguru.app"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:910363851200:android:4b04425ea6df8217bcf025",
+        "android_client_info": {
+          "package_name": "org.theskillguru.the_skill_guru"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "910363851200-50k8v1lvies085o53ivb9r99vkt8813j.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "org.theskillguru.the_skill_guru",
+            "certificate_hash": "7585c85bc42cc9307232f26d79b2ad389d9df8be"
+          }
+        },
+        {
+          "client_id": "910363851200-c5dv685cptk651mt48k0vcq0o65djq2k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "org.theskillguru.the_skill_guru",
+            "certificate_hash": "34adf22122ff82c9fc71091036cb693f4420074a"
+          }
+        },
+        {
+          "client_id": "910363851200-eti977op6ktlqq4kp94oj8fecg1m675b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "org.theskillguru.the_skill_guru",
+            "certificate_hash": "95e4580639550d6eed02333b2c188c675bf15cb9"
+          }
+        },
+        {
+          "client_id": "910363851200-p633vjmuctk7rpu09istft5ohddqcd28.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "org.theskillguru.the_skill_guru",
+            "certificate_hash": "3f00f5378eb3f3cd8fccde45e20552781b065abf"
+          }
+        },
+        {
+          "client_id": "910363851200-tekb63lhiju3qjghkhsf6n8evc6nud84.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "org.theskillguru.the_skill_guru",
+            "certificate_hash": "088fdd4fa03d522329f00d1d70ba4741dadd657e"
+          }
+        },
+        {
+          "client_id": "910363851200-gvb6s1t63190u8efse9vannrluhrgo8o.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEWEgbGmgmjTptTRD7K42K3Y88MlC2E3c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "910363851200-gvb6s1t63190u8efse9vannrluhrgo8o.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "910363851200-0guidrun9ug1rt2n9e6pqr96g9482tgm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.skillguru.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
