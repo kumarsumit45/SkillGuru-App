@@ -45,3 +45,5 @@ app-example
 
 # api keys
 firebase.js
+
+eas.json
