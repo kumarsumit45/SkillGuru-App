@@ -18,15 +18,12 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import COLORS from "../../constants/colors";
 import CountryPicker from "react-native-country-picker-modal";
-import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { signInWithCustomToken } from "firebase/auth";
 import { auth } from "../../config/firebase";
 import config from "../../config";
 import useAuthStore from "../../store/authStore";
-
-WebBrowser.maybeCompleteAuthSession();
 
 const AuthScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -48,23 +45,16 @@ const AuthScreen = () => {
   const router = useRouter();
   const { setUid } = useAuthStore();
 
-  // Configure Google OAuth
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    androidClientId: "910363851200-fdfi60fer0vqd0vej1rgi7p0uik90pnj.apps.googleusercontent.com",
-    iosClientId: "910363851200-reo32rckf07slahtehc9u5ad5va9ic9e.apps.googleusercontent.com",
-  });
-
+  // Configure Google Sign-In
   useEffect(() => {
-    if (response?.type === "success") {
-      const { id_token } = response.params;
-      handleGoogleSignIn(id_token);
-    }
-  }, [response]);
+    GoogleSignin.configure({
+      webClientId: "910363851200-gvb6s1t63190u8efse9vannrluhrgo8o.apps.googleusercontent.com",
+      offlineAccess: true,
+    });
+  }, []);
 
   const handleGoogleSignIn = async (idToken) => {
     try {
-      setGoogleLoading(true);
-
       const response = await fetch("https://api.theskillguru.org/auth/google", {
         method: "POST",
         headers: {
@@ -86,44 +76,40 @@ const AuthScreen = () => {
         await AsyncStorage.setItem("authToken", data.token || "");
       } catch (_) {}
 
+      setUid(data.uid);
+
       // Navigate based on response
       if (data.message === "User created successfully") {
         // New user - redirect to mobile number screen
         router.push("addMobileNumber");
       } else {
         // Existing user - redirect to home
-        router.push("/"); //will Adjust home route afterwards
+        router.push("/(main)/(tabs)");
       }
     } catch (error) {
       console.error("Error during Google sign-in:", error.message);
       Alert.alert("Error", "Google Sign-In failed. Please try again.");
-    } finally {
-      setGoogleLoading(false);
+      throw error;
     }
   };
 
   const handelGooglepress = async () => {
     try {
-      // Check if Client ID is configured
-      if (!request || request.clientId?.includes("YOUR_GOOGLE")) {
-        Alert.alert(
-          "Configuration Required",
-          "Please add your Google Web Client ID in the code. Check the comments in src/app/(auth)/index.jsx line 40."
-        );
-        return;
-      }
-
       setGoogleLoading(true);
-      const result = await promptAsync();
 
-      // If user cancelled, reset loading state
-      if (result?.type === "cancel" || result?.type === "dismiss") {
-        setGoogleLoading(false);
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const userInfo = await GoogleSignin.signIn();
+
+      const idToken = userInfo?.idToken;
+      if (!idToken) {
+        throw new Error("No Google ID token received");
       }
+
+      await handleGoogleSignIn(idToken);
     } catch (error) {
-      console.error("Google login error:", error);
-      Alert.alert("Error", `Failed to initiate Google login: ${error.message}`);
-    } finally{
+      console.error("Google Sign-In error:", error);
+      Alert.alert("Error", "Google Sign-In failed. Please try again.");
+    } finally {
       setGoogleLoading(false);
     }
   };
