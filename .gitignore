@@ -43,7 +43,5 @@ app-example
 /ios
 /android
 
-# api keys
-firebase.js
 
 eas.json
