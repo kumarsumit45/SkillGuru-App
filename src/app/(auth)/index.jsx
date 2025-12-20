@@ -49,9 +49,9 @@ const AuthScreen = () => {
   const { setUid } = useAuthStore();
 
   // Configure Google OAuth
-  
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: "910363851200-gvb6s1t63190u8efse9vannrluhrgo8o.apps.googleusercontent.com",
+    androidClientId: "910363851200-fdfi60fer0vqd0vej1rgi7p0uik90pnj.apps.googleusercontent.com",
+    iosClientId: "910363851200-reo32rckf07slahtehc9u5ad5va9ic9e.apps.googleusercontent.com",
   });
 
   useEffect(() => {
