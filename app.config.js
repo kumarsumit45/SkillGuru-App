@@ -49,7 +49,11 @@ export default {
       typedRoutes: true
     },
     extra: {
-      backendUrl: process.env.Base_url || "https://api.theskillguru.org"
+      backendUrl: process.env.Base_url || "https://api.theskillguru.org",
+      "router": {},
+      "eas": {
+        "projectId": "35b4e0d5-810c-4113-88a7-a60d5553042d"
+      }
     }
   }
 }
