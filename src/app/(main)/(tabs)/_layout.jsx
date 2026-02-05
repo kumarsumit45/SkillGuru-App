@@ -50,7 +50,7 @@ const Tablayout = () => {
           )
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="courses"
         options={{
           title: "Courses",
@@ -60,7 +60,7 @@ const Tablayout = () => {
             <Ionicons name="color-filter" size={28} color={color} />
           )
         }}
-      />
+      /> */}
       <Tabs.Screen
         name="profile"
         options={{
